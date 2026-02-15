@@ -16,10 +16,12 @@ body {
   background-color: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 15px;
+  line-height: 1.6;
   transition: background-color 0.2s, color 0.2s;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1 {
@@ -36,7 +38,7 @@ h2 {
 }
 
 h3 {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -49,13 +51,41 @@ h3 {
 }
 
 .muted {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--mut);
 }
 
 .mono {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   font-family: 'Courier New', monospace;
   color: var(--accent);
+}
+
+/* Form elements global style */
+input, select, textarea {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--brd);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mut);
 }

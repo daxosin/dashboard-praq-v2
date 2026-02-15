@@ -53,7 +53,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     return (
       <div
         onClick={() => setIsEditing(true)}
-        className={`cursor-pointer hover:bg-elev px-2 py-1 rounded transition-colors ${className}`}
+        className={`cursor-pointer hover:bg-elev px-3 py-1.5 rounded-lg transition-colors ${className}`}
       >
         {type === "select" && options.length > 0
           ? options.find((opt) => opt.value === value)?.label || value
@@ -70,7 +70,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className={`bg-card text-text border border-brd rounded px-2 py-1 outline-none focus:border-accent ${className}`}
+        className={`bg-card text-text border border-brd rounded-lg px-3 py-2 outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all ${className}`}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -89,7 +89,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
       onChange={(e) => setEditValue(e.target.value)}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
-      className={`bg-card text-text border border-brd rounded px-2 py-1 outline-none focus:border-accent ${className}`}
+      className={`bg-card text-text border border-brd rounded-lg px-3 py-2 outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all ${className}`}
     />
   );
 };

@@ -73,61 +73,63 @@ export const DataTable = <T extends Record<string, any>>({
 
   return (
     <div className={className}>
-      <div className="mb-3">
+      <div className="mb-4">
         <input
           type="text"
-          placeholder="Filtrer..."
+          placeholder="Rechercher..."
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
-          className="w-full max-w-xs bg-card text-text border border-brd rounded px-3 py-1.5 text-[12px] outline-none focus:border-accent transition-colors"
+          className="w-full max-w-sm bg-card text-text border border-brd rounded-lg px-4 py-2.5 text-[14px] outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all placeholder:text-mut"
         />
       </div>
 
-      <div className="bg-card border border-brd rounded-md overflow-hidden">
-        <table className="w-full border-collapse text-[12px]">
-          <thead>
-            <tr>
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  onClick={() => handleSort(col.key, col.sortable)}
-                  className={`px-3 py-2 text-left font-medium text-[10px] text-mut uppercase tracking-[0.8px] border-b border-brd ${
-                    col.sortable ? "cursor-pointer hover:text-text" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-1">
-                    {col.label}
-                    {col.sortable && sortKey === col.key && (
-                      <span className="text-accent">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAndSortedData.map((row, idx) => (
-              <tr
-                key={idx}
-                onClick={() => onRowClick?.(row)}
-                className={`border-b border-brd last:border-b-0 hover:bg-elev transition-colors ${
-                  onRowClick ? "cursor-pointer" : ""
-                }`}
-              >
+      <div className="bg-card border border-brd rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-[14px]">
+            <thead>
+              <tr className="bg-elev/50">
                 {columns.map((col) => (
-                  <td key={col.key} className="px-3 py-2">
-                    {col.render ? col.render(row) : row[col.key]}
-                  </td>
+                  <th
+                    key={col.key}
+                    onClick={() => handleSort(col.key, col.sortable)}
+                    className={`px-4 py-3 text-left font-semibold text-[11px] text-mut uppercase tracking-[1px] border-b border-brd ${
+                      col.sortable ? "cursor-pointer hover:text-text" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {col.label}
+                      {col.sortable && sortKey === col.key && (
+                        <span className="text-accent">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </div>
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredAndSortedData.map((row, idx) => (
+                <tr
+                  key={idx}
+                  onClick={() => onRowClick?.(row)}
+                  className={`border-b border-brd last:border-b-0 hover:bg-elev transition-colors ${
+                    onRowClick ? "cursor-pointer" : ""
+                  }`}
+                >
+                  {columns.map((col) => (
+                    <td key={col.key} className="px-4 py-3">
+                      {col.render ? col.render(row) : row[col.key]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {filteredAndSortedData.length === 0 && (
-          <div className="text-center py-8 text-mut text-[12px]">
+          <div className="text-center py-12 text-mut text-[14px]">
             Aucune donnée trouvée
           </div>
         )}

@@ -20,19 +20,19 @@ export const ConfirmDelete: React.FC<ConfirmDeleteProps> = ({
 }) => {
   return (
     <Modal isOpen={isOpen} onClose={onCancel} title="Confirmation" className={className}>
-      <div className="space-y-4">
-        <p className="text-[14px] text-sec">
+      <div className="space-y-5">
+        <p className="text-[16px] text-sec">
           {itemName
             ? `Voulez-vous vraiment supprimer "${itemName}" ?`
             : "Voulez-vous vraiment supprimer cet élément ?"}
         </p>
-        <p className="text-[12px] text-mut">
+        <p className="text-[14px] text-mut">
           Cette action est irréversible.
         </p>
-        <div className="flex gap-3 justify-end pt-2">
+        <div className="flex gap-3 justify-end pt-3">
           <button
             onClick={onCancel}
-            className="bg-card border border-brd rounded-md px-4 py-2 text-[12px] font-medium text-text hover:bg-elev transition-colors"
+            className="bg-card border border-brd rounded-lg px-6 py-2.5 text-[14px] font-medium text-text hover:bg-elev transition-colors"
           >
             Annuler
           </button>
@@ -41,7 +41,7 @@ export const ConfirmDelete: React.FC<ConfirmDeleteProps> = ({
               onConfirm();
               onCancel();
             }}
-            className="bg-red border border-red rounded-md px-4 py-2 text-[12px] font-semibold text-white hover:opacity-90 transition-opacity"
+            className="bg-red border border-red rounded-lg px-6 py-2.5 text-[14px] font-semibold text-white hover:opacity-90 transition-opacity"
           >
             Supprimer
           </button>
