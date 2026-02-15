@@ -1,0 +1,299 @@
+{
+  "project": {
+    "name": "Dashboard PRAQ Pharma78",
+    "version": "2.0",
+    "type": "Cockpit qualité ISO 9001:2015",
+    "classification": "L1 — Données métier qualité, aucune donnée patient",
+    "owner": "Emmanuel — PRAQ (Pharmacien Responsable Assurance Qualité)",
+    "owner_profile": "Docteur en pharmacie + DU Intelligence Artificielle en Santé",
+    "entity": "Pharma78 — Bois-d'Arcy (78), 2500m²",
+    "opening": "Mars 2026",
+    "activities": [
+      "Officine retail",
+      "PDA robotisée pour 9 EHPAD",
+      "Orthopédie",
+      "Luxe L'Écrin (cosmétiques premium)",
+      "Nature & Bien-être",
+      "Cabine de téléconsultation"
+    ]
+  },
+
+  "prd_document": {
+    "file": "PRD-Dashboard-PRAQ-v2.md",
+    "status": "Complet — en attente de validation finale avant codage",
+    "sections": [
+      "1. Résumé exécutif",
+      "2. Problème & Solution",
+      "3. Direction artistique",
+      "4. Architecture des 12 onglets",
+      "4B. Formulaire de déclaration terrain",
+      "5. Architecture technique",
+      "6. Critères d'acceptance (20 critères dashboard + 10 critères terrain)",
+      "7. Risques & Mitigations",
+      "8. Roadmap",
+      "9. Validation"
+    ],
+    "total_lines": 1241
+  },
+
+  "design_validation": {
+    "file": "design-validation-pharma78.html",
+    "status": "Livré — en attente de retour utilisateur",
+    "content": "Page statique HTML montrant typographie, KPI cards, badges, barres de progression, tableau, alertes, cartes CAPA, matrice risques, bibliothèque icônes SVG, toggle nuit/jour",
+    "user_feedback_pending": true
+  },
+
+  "architecture": {
+    "backend": "Supabase (PostgreSQL managé)",
+    "frontend": "Next.js (React)",
+    "style": "Tailwind CSS + variables CSS custom",
+    "charts": "Recharts",
+    "icons": "SVG inline monochromes — ZERO emoji",
+    "hosting": "Vercel (frontend) + Supabase (backend)",
+    "auth_dashboard": "Supabase Auth (email/password)",
+    "auth_terrain": "PIN 4 chiffres (table staff_pins, hash bcrypt)",
+    "realtime": "Supabase Realtime (WebSocket)",
+    "notifications": "Supabase Edge Functions (email SMTP)",
+    "cost_estimate": "0 EUR/mois (plans gratuits Supabase + Vercel)"
+  },
+
+  "database_schema": {
+    "tables": [
+      {
+        "name": "domains",
+        "description": "16 domaines qualité",
+        "key_fields": ["id", "name", "process_type"]
+      },
+      {
+        "name": "sops",
+        "description": "90 SOPs avec cycle de vie",
+        "key_fields": ["id", "code", "title", "domain_id(FK)", "status", "version", "validated_at", "next_revision", "owner", "notes"],
+        "initial_data": "90 SOPs extraites de liste_maitresse_sop_h8pharma.xlsx"
+      },
+      {
+        "name": "capas",
+        "description": "Registre CAPA + déclarations terrain",
+        "key_fields": ["id", "source", "type", "domain_id(FK)", "description", "root_cause", "action", "owner", "due_date", "status", "closed_at", "efficacy_check", "efficacy_result", "created_by(FK staff)", "terrain_zone", "terrain_severity", "terrain_photo_url"]
+      },
+      {
+        "name": "audits",
+        "description": "Programme d'audits",
+        "key_fields": ["id", "type", "domain_id(FK)", "reference", "auditor", "planned_at", "completed_at", "status", "major_findings", "minor_findings", "observations", "strengths", "summary"]
+      },
+      {
+        "name": "audit_findings",
+        "description": "Constats détaillés par audit",
+        "key_fields": ["id", "audit_id(FK)", "type", "clause_ref", "description", "capa_id(FK)"]
+      },
+      {
+        "name": "risks",
+        "description": "Cartographie des risques AMDEC",
+        "key_fields": ["id", "domain_id(FK)", "description", "causes", "consequences", "probability", "gravity", "detectability", "criticality(calculated)", "level(calculated)", "mitigation", "owner", "review_due", "residual_p", "residual_g", "residual_d", "residual_crit(calculated)"]
+      },
+      {
+        "name": "vigilances",
+        "description": "Signalements réglementaires",
+        "key_fields": ["id", "type", "product", "lot", "severity", "declared_ansm", "ansm_ref", "measures", "capa_id(FK)", "status"]
+      },
+      {
+        "name": "recalls",
+        "description": "Retraits et rappels de lots",
+        "key_fields": ["id", "source", "product", "lots", "action", "quantity", "status"]
+      },
+      {
+        "name": "staff",
+        "description": "Registre des collaborateurs",
+        "key_fields": ["id", "name", "role", "cluster", "email", "active"]
+      },
+      {
+        "name": "staff_pins",
+        "description": "PIN terrain pour formulaire déclaration",
+        "key_fields": ["staff_id(FK)", "pin_hash", "locked", "failed_attempts"]
+      },
+      {
+        "name": "qualifications",
+        "description": "Habilitations par collaborateur",
+        "key_fields": ["id", "staff_id(FK)", "skill_name", "obtained_at", "expires_at", "status"]
+      },
+      {
+        "name": "trainings",
+        "description": "Plan de formation",
+        "key_fields": ["id", "staff_id(FK)", "title", "type", "planned_at", "completed_at", "evaluation", "next_due"]
+      },
+      {
+        "name": "equipment",
+        "description": "Parc d'équipements critiques",
+        "key_fields": ["id", "name", "category", "brand_model", "serial_no", "location", "commissioned_at", "status", "criticality"]
+      },
+      {
+        "name": "maintenance",
+        "description": "Calendrier maintenance / métrologie",
+        "key_fields": ["id", "equipment_id(FK)", "type", "frequency", "last_done_at", "next_due_at", "provider", "status(calculated)", "result", "certificate_ref"]
+      },
+      {
+        "name": "suppliers",
+        "description": "Fournisseurs et sous-traitants",
+        "key_fields": ["id", "name", "type", "category", "contract", "last_eval_at", "eval_score", "rgpd_clause", "hds_compliant"]
+      },
+      {
+        "name": "supplier_events",
+        "description": "Incidents fournisseurs",
+        "key_fields": ["id", "supplier_id(FK)", "type", "description", "action", "capa_id(FK)"]
+      },
+      {
+        "name": "complaints",
+        "description": "Réclamations",
+        "key_fields": ["id", "source", "ehpad_name", "category", "severity", "owner", "responded_at", "status", "satisfaction", "capa_id(FK)"]
+      },
+      {
+        "name": "indicators",
+        "description": "Objectifs qualité mesurables",
+        "key_fields": ["id", "label", "target", "unit", "direction", "source_tab"]
+      },
+      {
+        "name": "indicator_values",
+        "description": "Valeurs mensuelles des indicateurs",
+        "key_fields": ["id", "indicator_id(FK)", "period(YYYY-MM)", "value"]
+      },
+      {
+        "name": "reviews",
+        "description": "Revues de direction §9.3",
+        "key_fields": ["id", "date", "participants", "status", "context_notes", "resource_notes", "improvement"]
+      },
+      {
+        "name": "review_actions",
+        "description": "Décisions et actions de revue",
+        "key_fields": ["id", "review_id(FK)", "decision", "action", "owner", "due_date", "status", "followup_notes"]
+      }
+    ],
+    "views": [
+      {
+        "name": "alerts_view",
+        "description": "Vue agrégée de toutes les alertes actives (CAPA retard, habilitations, maintenance, SOPs, réclamations, vigilances)",
+        "used_by": "Onglet 1 — Tableau de bord"
+      }
+    ],
+    "all_tables_have": ["created_at", "updated_at", "created_by"]
+  },
+
+  "tabs": [
+    {"number": 1, "name": "Tableau de bord", "icon": "grid", "description": "Score SMQ, alertes actives, 6 KPI cards, matrice santé par processus"},
+    {"number": 2, "name": "Documents & SOPs", "icon": "doc", "description": "90 SOPs, vue par domaine, cycle de vie, alertes révision"},
+    {"number": 3, "name": "CAPA & Non-conformités", "icon": "zap", "description": "Registre CAPA, analyse causes, vérification efficacité, stats"},
+    {"number": 4, "name": "Audits", "icon": "search", "description": "Programme annuel, constats, plans d'action, historique pluriannuel"},
+    {"number": 5, "name": "Risques", "icon": "triangle", "description": "Matrice 5x5, AMDEC, plans traitement, réévaluation périodique"},
+    {"number": 6, "name": "Vigilances", "icon": "shield", "description": "Pharmaco/matério/cosméto/nutrivigilance, retraits rappels"},
+    {"number": 7, "name": "Formations & Habilitations", "icon": "users", "description": "Matrice collaborateurs x compétences, plan formation, alertes expiration"},
+    {"number": 8, "name": "Équipements & Métrologie", "icon": "tool", "description": "Parc équipements, maintenance préventive, étalonnages, chaîne du froid"},
+    {"number": 9, "name": "Fournisseurs", "icon": "truck", "description": "Évaluations, scoring, RGPD sous-traitants, incidents"},
+    {"number": 10, "name": "Réclamations & Satisfaction", "icon": "msg", "description": "Réclamations par source/EHPAD, délais, satisfaction, tendances"},
+    {"number": 11, "name": "Indicateurs & Tendances", "icon": "bar-chart", "description": "KPIs mensuels, graphiques historiques, objectifs qualité"},
+    {"number": 12, "name": "Revue de direction", "icon": "clipboard", "description": "Données entrée §9.3 auto-agrégées, décisions, suivi inter-revues"}
+  ],
+
+  "terrain_form": {
+    "route": "/declare",
+    "access": "PIN 4 chiffres personnel (table staff_pins)",
+    "security": "Hash bcrypt, blocage après 5 échecs, déblocage par PRAQ",
+    "scope": "NC + anomalies + near miss uniquement",
+    "excluded": "Réclamations, vigilances, suggestions, données médicales",
+    "identification": "Nominatif obligatoire (PIN lié au profil staff)",
+    "fields": ["type_evenement(3 choix)", "domaine(16)", "zone(18 zones)", "date(pré-remplie)", "description(textarea)", "gravite_ressentie(3 niveaux, optionnel)", "photo(upload, optionnel)"],
+    "post_declaration_circuit": {
+      "insert": "Table capas avec source='Terrain', status='Ouverte'",
+      "notification_praq": "Email immédiat",
+      "notification_resp_domaine": "Email en parallèle",
+      "notification_declarant": "Email quand PRAQ qualifie (change status)"
+    },
+    "declarant_followup": "Voit ses 5 dernières déclarations avec statut, lecture seule",
+    "design": "Mode nuit uniquement, gros boutons tactile 48px min, colonne unique verticale",
+    "acceptance_criteria": "10 critères (CA-T1 à CA-T10)"
+  },
+
+  "roles": [
+    {"role": "PRAQ (admin)", "auth": "email/password", "rights": "CRUD complet toutes tables"},
+    {"role": "Direction", "auth": "email/password", "rights": "Lecture seule"},
+    {"role": "Auditeur", "auth": "email/password temporaire", "rights": "Lecture seule, accès limité"},
+    {"role": "Responsable processus", "auth": "email/password", "rights": "Lecture + édition sur son périmètre"},
+    {"role": "Déclarant terrain", "auth": "PIN 4 chiffres", "rights": "INSERT capas terrain + lecture propres déclarations"}
+  ],
+
+  "design_direction": {
+    "dark_mode_name": "Salle de contrôle",
+    "dark_description": "Fond noir quasi-total, textes blanc/gris, accent vert néon (#00FF88) comme signal, Montserrat",
+    "light_mode_name": "Cabinet de consultation",
+    "light_description": "Blanc cassé médical, titres bleu profond (#1B4D5C), accent or mat (#C4A35A), Arial",
+    "signaletics": "3 feux uniquement : vert (conforme), ambre (attention), rouge (action requise). Aucune autre couleur décorative.",
+    "icons": "SVG trait fin (1.5-2px), monochromes, style signalétique hospitalière",
+    "editing": "Interface transparente — pas de formulaires visibles, clic sur donnée = édition sur place, sauvegarde silencieuse",
+    "typography": "Hiérarchie tranchée : tag section (caps 10px), H1 (28px bold), H2 (18px semibold), corps (14px), muted (11px)",
+    "tables": "Dépouillés, filet fin, header petites caps, badges compacts, survol léger",
+    "progress_bars": "Fines 6-8px, coins arrondis, tricolores vert/ambre/gris",
+    "hard_rule": "ZERO emoji. Jamais. Nulle part. Emmanuel déteste les emojis."
+  },
+
+  "brand_rules": {
+    "entity_name": "Pharma78 (JAMAIS 'H8 Pharma' — marque supprimée)",
+    "reference_skill": "h8-pharma-brand (charte graphique avec valeurs exactes couleurs, typo, espacements)"
+  },
+
+  "data_sources": {
+    "uploaded_files": [
+      "checklist_audit_stage1_h8pharma.docx — Checklist audit ISO 9001 Stage 1",
+      "liste_maitresse_sop_h8pharma.xlsx — 90 SOPs (18 validées, 33 en cours, 39 planifiées, 16 domaines)",
+      "matrice_iso9001_h8pharma.xlsx — Matrice de correspondance ISO 9001:2015"
+    ],
+    "sop_stats": {
+      "total": 90,
+      "validated": 18,
+      "in_progress": 33,
+      "planned": 39,
+      "domains": 16
+    }
+  },
+
+  "roadmap": [
+    {"phase": "V2.0a", "content": "Schéma PostgreSQL Supabase, RLS, seed 90 SOPs, auth PRAQ, table staff_pins", "when": "Semaine 1"},
+    {"phase": "V2.0b", "content": "Next.js, 12 onglets, CRUD en ligne, charte nuit/jour, icônes SVG", "when": "Semaines 2-3"},
+    {"phase": "V2.0c", "content": "Route /declare, pavé PIN, formulaire 3 écrans, notifications email", "when": "Semaine 3"},
+    {"phase": "V2.0d", "content": "Vue alertes, liens inter-onglets, score global SMQ, déploiement Vercel", "when": "Semaine 4"},
+    {"phase": "V2.1", "content": "Export/import JSON, export PDF par onglet", "when": "Post-livraison"},
+    {"phase": "V2.2", "content": "Audit trail par enregistrement", "when": "T2 2026"},
+    {"phase": "V3.0", "content": "Rôles direction + auditeur, Realtime multi-utilisateurs", "when": "T3 2026"},
+    {"phase": "V3.1", "content": "Monitoring IoT chaîne du froid", "when": "T4 2026"},
+    {"phase": "V4.0", "content": "Connexion API LQO, synchronisation bidirectionnelle", "when": "2027"}
+  ],
+
+  "decisions_made": [
+    "Backend Supabase (pas localStorage, pas de BDD custom)",
+    "Frontend Next.js + Tailwind (pas React artifact standalone)",
+    "12 onglets couvrant 100% des responsabilités PRAQ",
+    "Formulaire terrain via PIN 4 chiffres (pas QR code, pas login email)",
+    "Tout le personnel peut déclarer",
+    "NC + anomalies + near miss uniquement (pas de suggestions)",
+    "Nominatif obligatoire",
+    "Circuit : PRAQ + responsable domaine notifiés en parallèle",
+    "Déclarant reçoit notification email quand PRAQ qualifie",
+    "Mode nuit par défaut, toggle jour disponible",
+    "Zéro emoji — SVG monochromes exclusivement",
+    "Branding Pharma78 uniquement (H8 Pharma supprimé)",
+    "Outil permanent long terme (pas de countdown ouverture)",
+    "Tout éditable en ligne (pas de formulaires séparés)"
+  ],
+
+  "next_steps": [
+    "Validation finale du PRD par Emmanuel",
+    "Validation du design (retour sur design-validation-pharma78.html)",
+    "Phase V2.0a : Création du projet Supabase, schéma SQL, RLS policies, seed data",
+    "Phase V2.0b : Scaffolding Next.js, composants partagés (EditableCell, Badge, Bar3, KPI), implémentation des 12 onglets",
+    "Phase V2.0c : Route /declare, composant PIN pad, formulaire terrain, Edge Functions notifications",
+    "Phase V2.0d : alerts_view, navigation inter-onglets, score SMQ, déploiement"
+  ],
+
+  "session_context": {
+    "conversation_tone": "Direct, professionnel, pas de verbosité inutile",
+    "user_preferences": "Déteste les emojis. Veut du concret. Questionne l'architecture. Exige que l'outil soit vivant et pérenne.",
+    "skills_to_use": ["h8-pharma-brand (charte graphique)", "prd-pharma-tools (structure PRD)", "frontend-design (qualité UI)"],
+    "supabase_mcp": "Connecteur MCP Supabase actif dans l'environnement Claude"
+  }
+}

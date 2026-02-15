@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pharma78 — Direction Artistique</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  :root {
+    --bg: #1A1A1A;
+    --card: #242424;
+    --elev: #2A2A2A;
+    --accent: #00FF88;
+    --accent-dim: rgba(0,255,136,0.10);
+    --text: #FFFFFF;
+    --sec: #C8C8C8;
+    --mut: #888888;
+    --brd: #505050;
+    --grn: #00FF88;
+    --amb: #FFB800;
+    --red: #FF4444;
+    --font: 'Montserrat', sans-serif;
+    --h1: #FFFFFF;
+    --h2: #FFFFFF;
+    --tag: #00FF88;
+    --bar-top: none;
+    --badge-plan-bg: #505050;
+    --badge-plan-c: #C8C8C8;
+    --risk-grn: rgba(0,255,136,0.08);
+    --risk-amb: rgba(255,184,0,0.15);
+    --risk-red: rgba(255,68,68,0.18);
+  }
+
+  [data-theme="light"] {
+    --bg: #FAFBFC;
+    --card: #FFFFFF;
+    --elev: #F0F2F4;
+    --accent: #C4A35A;
+    --accent-dim: rgba(196,163,90,0.10);
+    --text: #1A1A1A;
+    --sec: #5A6570;
+    --mut: #8A929A;
+    --brd: #E5E7EB;
+    --grn: #2E7D5A;
+    --amb: #D4860B;
+    --red: #C0392B;
+    --font: Arial, sans-serif;
+    --h1: #1B4D5C;
+    --h2: #2A6478;
+    --tag: #3D8B8B;
+    --bar-top: linear-gradient(90deg,#1B4D5C,#3D8B8B);
+    --badge-plan-bg: #D0D5DA;
+    --badge-plan-c: #5A6570;
+    --risk-grn: rgba(46,125,90,0.06);
+    --risk-amb: rgba(212,134,11,0.08);
+    --risk-red: rgba(192,57,43,0.10);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--sec);
+    font-family: var(--font);
+    line-height: 1.55;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .top-bar { height: 4px; background: var(--bar-top); }
+
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 24px 60px; }
+
+  /* ── Typography ── */
+  h1 { color: var(--h1); font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+  h2 { color: var(--h2); font-size: 18px; font-weight: 600; margin-bottom: 14px; margin-top: 40px; }
+  h3 { color: var(--text); font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  .tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.8px; color: var(--tag); }
+  .accent-line { width: 48px; height: 2.5px; background: var(--accent); border-radius: 2px; margin: 8px 0 6px; }
+  .sub { font-size: 11px; color: var(--mut); }
+  .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; font-weight: 600; color: var(--accent); }
+
+  /* ── Section dividers ── */
+  .section { margin-top: 48px; }
+  .section-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; color: var(--mut); margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--brd); }
+
+  /* ── Card ── */
+  .card { background: var(--card); border: 1px solid var(--brd); border-radius: 6px; padding: 16px 20px; transition: background 0.2s; }
+
+  /* ── KPI card ── */
+  .kpi { border-left: 3px solid var(--accent); min-width: 140px; flex: 1; }
+  .kpi .kpi-label { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .kpi .kpi-label span { font-size: 10px; color: var(--mut); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
+  .kpi .kpi-value { font-size: 30px; font-weight: 700; color: var(--text); line-height: 1.1; }
+  .kpi .kpi-sub { font-size: 11px; color: var(--sec); margin-top: 4px; }
+  .kpi-amber { border-left-color: var(--amb); }
+
+  /* ── Badges ── */
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-ok { background: var(--grn); color: var(--bg); }
+  .badge-wip { background: var(--amb); color: #FFF; }
+  .badge-plan { background: var(--badge-plan-bg); color: var(--badge-plan-c); }
+  .badge-crit { background: var(--red); color: #FFF; }
+
+  /* ── Progress bar ── */
+  .bar-track { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--elev); }
+  .bar-grn { background: var(--grn); transition: width 0.4s; }
+  .bar-amb { background: var(--amb); transition: width 0.4s; }
+
+  /* ── Table ── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tbl th { padding: 8px 12px; text-align: left; font-weight: 500; font-size: 10px; color: var(--mut); text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1px solid var(--brd); }
+  .tbl td { padding: 8px 12px; border-bottom: 1px solid var(--brd); }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: var(--elev); }
+
+  /* ── Alert line ── */
+  .alert { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; }
+  .alert-dot { width: 8px; height: 8px; border-radius: 4px; flex-shrink: 0; }
+
+  /* ── Risk matrix ── */
+  .matrix { display: grid; grid-template-columns: 32px repeat(5, 1fr); gap: 2px; font-size: 10px; }
+  .matrix-cell { height: 32px; border-radius: 3px; display: flex; align-items: center; justify-content: center; }
+  .matrix-head { color: var(--mut); font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .matrix-dot { width: 6px; height: 6px; border-radius: 3px; }
+
+  /* ── Icon container ── */
+  .ico-wrap { width: 40px; height: 40px; background: var(--elev); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+
+  /* ── Utility ── */
+  .flex { display: flex; }
+  .flex-wrap { flex-wrap: wrap; }
+  .gap-10 { gap: 10px; }
+  .gap-6 { gap: 6px; }
+  .gap-16 { gap: 16px; }
+  .between { justify-content: space-between; }
+  .items-center { align-items: center; }
+  .col { flex-direction: column; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .mb-6 { margin-bottom: 6px; }
+  .mt-10 { margin-top: 10px; }
+  .text-center { text-align: center; }
+
+  /* ── Toggle button ── */
+  .toggle { background: var(--card); border: 1px solid var(--brd); border-radius: 6px; padding: 6px 12px; cursor: pointer; color: var(--text); font-family: inherit; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+
+  /* ── Add button ── */
+  .add-btn { background: transparent; border: 1px dashed var(--brd); border-radius: 6px; padding: 8px 20px; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--mut); font-size: 11px; font-family: inherit; }
+
+  svg { flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="top-bar"></div>
+
+<div class="wrap">
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="flex between items-center">
+    <div>
+      <div class="tag">Dashboard PRAQ</div>
+      <h1>Pharm<span style="color:var(--accent)">a</span>78</h1>
+      <div class="accent-line"></div>
+      <div class="sub">SMQ ISO 9001:2015 — Bois-d'Arcy (78)</div>
+    </div>
+    <div class="flex gap-10 items-center">
+      <!-- Score mini -->
+      <div class="text-center" style="margin-right:4px">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--elev)" stroke-width="3"/>
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--grn)" stroke-width="3" stroke-dasharray="64 113" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+          <text x="22" y="26" text-anchor="middle" fill="var(--text)" font-size="12" font-weight="700" font-family="var(--font)">57</text>
+        </svg>
+        <div style="font-size:9px;color:var(--mut)">Score SMQ</div>
+      </div>
+      <!-- Buttons -->
+      <button class="toggle" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')">
+        <svg id="ico-theme" width="18" height="18" fill="none" stroke="var(--sec)" stroke-width="1.5" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        Mode
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION: TYPOGRAPHIE ═══ -->
+  <div class="section">
+    <div class="section-label">Typographie & hiérarchie</div>
+    <div class="card" style="padding:24px">
+      <div class="tag" style="margin-bottom:12px">Tag de section</div>
+      <h1 style="margin-bottom:4px">Titre principal H1</h1>
+      <div class="accent-line" style="margin-bottom:16px"></div>
+      <h2 style="margin-top:0;margin-bottom:8px">Sous-titre H2 — Nom de section</h2>
+      <h3>H3 — Sous-section ou label de carte</h3>
+      <p style="max-width:600px;margin-bottom:10px">Corps de texte standard. Le dashboard affiche les données qualité de Pharma78 avec une grille stricte, un accent unique et une hiérarchie typographique sans ambiguïté.</p>
+      <p class="sub">Texte secondaire, légendes, métadonnées</p>
+      <p style="margin-top:8px"><span class="mono">SOP-PDA-2025-001</span> — Code monospace accent</p>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION: CARTES KPI ═══ -->
+  <div class="section">
+    <div class="section-label">Cartes KPI</div>
+    <div class="flex gap-10 flex-wrap">
+      <div class="card kpi">
+        <div class="kpi-label">
+          <svg width="16" height="16" fill="none" stroke="var(--mut)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+          <span>SOPs</span>
+        </div>
+        <div class="kpi-value">18/90</div>
+        <div class="kpi-sub">33 en cours · 39 planifiées</div>
+      </div>
+      <div class="card kpi kpi-amber">
+        <div class="kpi-label">
+          <svg width="16" height="16" fill="none" stroke="var(--mut)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>CAPA</span>
+        </div>
+        <div class="kpi-value">3</div>
+        <div class="kpi-sub">1 en retard</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">
+          <svg width="16" height="16" fill="none" stroke="var(--mut)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <span>Habilitations</span>
+        </div>
+        <div class="kpi-value">75%</div>
+        <div class="kpi-sub">2 expirent sous 30j</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">
+          <svg width="16" height="16" fill="none" stroke="var(--mut)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+          <span>Équipements</span>
+        </div>
+        <div class="kpi-value">92%</div>
+        <div class="kpi-sub">1 maintenance due</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION: SIGNALÉTIQUE ═══ -->
+  <div class="section">
+    <div class="section-label">Signalétique à trois feux & badges</div>
+    <div class="flex gap-16 items-center" style="margin-bottom:16px">
+      <div class="flex items-center gap-6"><div style="width:24px;height:24px;border-radius:6px;background:var(--grn)"></div><span>Feu vert — Conforme</span></div>
+      <div class="flex items-center gap-6"><div style="width:24px;height:24px;border-radius:6px;background:var(--amb)"></div><span>Feu ambre — Attention</span></div>
+      <div class="flex items-center gap-6"><div style="width:24px;height:24px;border-radius:6px;background:var(--red)"></div><span>Feu rouge — Action requise</span></div>
+    </div>
+    <div class="flex gap-10 items-center">
+      <span class="badge badge-ok">Validé</span>
+      <span class="badge badge-wip">En cours</span>
+      <span class="badge badge-plan">Planifié</span>
+      <span class="badge badge-crit">Critique</span>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION: BARRE DE PROGRESSION ═══ -->
+  <div class="section">
+    <div class="section-label">Barres de progression</div>
+    <div class="card">
+      <div class="flex between mb-6">
+        <span style="font-size:12px;color:var(--text);font-weight:600">PDA — 3/3 validées</span>
+        <span style="font-size:11px;color:var(--mut)">100%</span>
+      </div>
+      <div class="bar-track"><div class="bar-grn" style="width:100%"></div></div>
+
+      <div class="flex between mb-6" style="margin-top:16px">
+        <span style="font-size:12px;color:var(--text);font-weight:600">Conformité réglementaire — 5/10</span>
+        <span style="font-size:11px;color:var(--mut)">70%</span>
+      </div>
+      <div class="bar-track"><div class="bar-grn" style="width:50%"></div><div class="bar-amb" style="width:20%"></div></div>
+
+      <div class="flex between mb-6" style="margin-top:16px">
+        <span style="font-size:12px;color:var(--text);font-weight:600">Orthopédie — 0/5</span>
+        <span style="font-size:11px;color:var(--mut)">0%</span>
+      </div>
+      <div class="bar-track"><div class="bar-grn" style="width:0%"></div></div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION: TABLEAU ═══ -->
+  <div class="section">
+    <div class="section-label">Style de tableau</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="tbl">
+        <thead><tr>
+          <th>Code</th><th>Titre</th><th>Domaine</th><th>Responsable</th><th>Statut</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="mono">SOP-PDA-2025-001</td><td style="color:var(--sec)">Préparation automatisée des doses</td><td style="color:var(--mut)">PDA</td><td style="color:var(--mut)">PRAQ</td><td><span class="badge badge-ok">Validé</span></td></tr>
+          <tr><td class="mono">SOP-QMS-006</td><td style="color:var(--sec)">Gestion des risques (AMDEC)</td><td style="color:var(--mut)">Gouvernance Qualité</td><td style="color:var(--mut)">PRAQ</td><td><span class="badge badge-wip">En cours</span></td></tr>
+          <tr><td class="mono">SOP-CYBER-002</td><td style="color:var(--sec)">Réponse à incident cyber</td><td style="color:var(--mut)">Cybersécurité</td><td style="color:var(--mut)">PRAQ / DSI</td><td><span class="badge badge-plan">Planifié</span></td></tr>
+          <tr><td class="mono">SOP-EHPAD-004</td><td style="color:var(--sec)">Gestion réclamations établissements</td><td style="color:var(--mut)">Relation EHPAD</td><td style="color:var(--mut)">PRAQ</td><td><span class="badge badge-ok">Validé</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION: ALERTES ═══ -->
+  <div class="section">
+    <div class="section-label">Alertes</div>
+    <div class="flex col gap-6">
+      <div class="card alert" style="border-left:3px solid var(--red);padding:10px 14px">
+        <div class="alert-dot" style="background:var(--red)"></div>
+        <span style="font-size:12px;flex:1">CAPA-004 : Qualification sonde T° PDA — échéance dépassée</span>
+      </div>
+      <div class="card alert" style="border-left:3px solid var(--amb);padding:10px 14px">
+        <div class="alert-dot" style="background:var(--amb)"></div>
+        <span style="font-size:12px;flex:1">SOP-RH-004 : Matrice habilitations — en cours depuis 90 jours</span>
+      </div>
+      <div class="card alert" style="border-left:3px solid var(--amb);padding:10px 14px">
+        <div class="alert-dot" style="background:var(--amb)"></div>
+        <span style="font-size:12px;flex:1">2 habilitations expirent sous 30 jours (PDA, stupéfiants)</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION: CAPA CARDS ═══ -->
+  <div class="section">
+    <div class="section-label">Cartes CAPA</div>
+    <div class="flex col gap-6">
+      <div class="card flex items-center" style="border-left:3px solid var(--red);padding:10px 14px">
+        <div>
+          <span class="mono">CAPA-004</span>
+          <div style="font-size:12px;color:var(--sec);margin-top:2px">Qualification sonde T° zone PDA</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <span class="badge badge-crit">Critique</span>
+          <div style="font-size:10px;color:var(--mut);margin-top:3px">Éch. 01/03/2026</div>
+        </div>
+      </div>
+      <div class="card flex items-center" style="border-left:3px solid var(--amb);padding:10px 14px">
+        <div>
+          <span class="mono">CAPA-002</span>
+          <div style="font-size:12px;color:var(--sec);margin-top:2px">Matrice habilitations non formalisée</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <span class="badge badge-wip">En cours</span>
+          <div style="font-size:10px;color:var(--mut);margin-top:3px">Éch. 15/03/2026</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION: MATRICE RISQUES ═══ -->
+  <div class="section">
+    <div class="section-label">Matrice des risques</div>
+    <div class="card">
+      <div class="matrix">
+        <div></div>
+        <div class="matrix-head">G1</div><div class="matrix-head">G2</div><div class="matrix-head">G3</div><div class="matrix-head">G4</div><div class="matrix-head">G5</div>
+
+        <div class="matrix-head">P5</div>
+        <div class="matrix-cell" style="background:var(--risk-amb)"></div>
+        <div class="matrix-cell" style="background:var(--risk-amb)"></div>
+        <div class="matrix-cell" style="background:var(--risk-red)"></div>
+        <div class="matrix-cell" style="background:var(--risk-red)"><div class="matrix-dot" style="background:var(--red)"></div></div>
+        <div class="matrix-cell" style="background:var(--risk-red)"></div>
+
+        <div class="matrix-head">P4</div>
+        <div class="matrix-cell" style="background:var(--risk-grn)"></div>
+        <div class="matrix-cell" style="background:var(--risk-amb)"></div>
+        <div class="matrix-cell" style="background:var(--risk-amb)"></div>
+        <div class="matrix-cell" style="background:var(--risk-red)"></div>
+        <div class="matrix-cell" style="background:var(--risk-red)"></div>
+
+        <div class="matrix-head">P3</div>
+        <div class="matrix-cell" style="background:var(--risk-grn)"></div>
+        <div class="matrix-cell" style="background:var(--risk-grn)"></div>
+        <div class="matrix-cell" style="background:var(--risk-amb)"></div>
+        <div class="matrix-cell" style="background:var(--risk-amb)"><div class="matrix-dot" style="background:var(--amb)"></div><div class="matrix-dot" style="background:var(--amb);margin-left:3px"></div></div>
+        <div class="matrix-cell" style="background:var(--risk-red)"></div>
+
+        <div class="matrix-head">P2</div>
+        <div class="matrix-cell" style="background:var(--risk-grn)"></div>
+        <div class="matrix-cell" style="background:var(--risk-grn)"></div>
+        <div class="matrix-cell" style="background:var(--risk-grn)"><div class="matrix-dot" style="background:var(--grn)"></div></div>
+        <div class="matrix-cell" style="background:var(--risk-amb)"></div>
+        <div class="matrix-cell" style="background:var(--risk-amb)"></div>
+
+        <div class="matrix-head">P1</div>
+        <div class="matrix-cell" style="background:var(--risk-grn)"></div>
+        <div class="matrix-cell" style="background:var(--risk-grn)"></div>
+        <div class="matrix-cell" style="background:var(--risk-grn)"></div>
+        <div class="matrix-cell" style="background:var(--risk-grn)"></div>
+        <div class="matrix-cell" style="background:var(--risk-amb)"></div>
+      </div>
+      <div class="flex gap-16 mt-10" style="font-size:10px;color:var(--mut)">
+        <span class="flex items-center gap-6"><span style="width:8px;height:8px;border-radius:2px;background:var(--risk-grn);border:1px solid var(--brd)"></span> Acceptable</span>
+        <span class="flex items-center gap-6"><span style="width:8px;height:8px;border-radius:2px;background:var(--risk-amb);border:1px solid var(--brd)"></span> Surveillance</span>
+        <span class="flex items-center gap-6"><span style="width:8px;height:8px;border-radius:2px;background:var(--risk-red);border:1px solid var(--brd)"></span> Inacceptable</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION: ICÔNES ═══ -->
+  <div class="section">
+    <div class="section-label">Bibliothèque d'icônes SVG</div>
+    <div class="card flex flex-wrap gap-16" style="padding:20px">
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="4" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="11" width="7" height="10" rx="1"/></svg>
+        </div>
+        <span class="sub">Tableau de bord</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+        </div>
+        <span class="sub">Documents</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <span class="sub">CAPA</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <span class="sub">Audits</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        </div>
+        <span class="sub">Risques</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <span class="sub">Vigilances</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <span class="sub">Formations</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <span class="sub">Équipements</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </div>
+        <span class="sub">Fournisseurs</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <span class="sub">Réclamations</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <span class="sub">Indicateurs</span>
+      </div>
+
+      <div class="flex col items-center gap-6">
+        <div class="ico-wrap">
+          <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+        </div>
+        <span class="sub">Revue direction</span>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION: BOUTONS D'ACTION ═══ -->
+  <div class="section">
+    <div class="section-label">Actions & interactions</div>
+    <div class="flex gap-16 items-center flex-wrap">
+      <button class="add-btn">
+        <svg width="14" height="14" fill="none" stroke="var(--mut)" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Ajouter un élément
+      </button>
+      <button class="toggle">
+        <svg width="16" height="16" fill="none" stroke="var(--sec)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exporter JSON
+      </button>
+      <button class="toggle">
+        <svg width="16" height="16" fill="none" stroke="var(--sec)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importer JSON
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ═══ FOOTER ═══ -->
+  <div style="margin-top:48px;padding-top:12px;border-top:1px solid var(--brd);text-align:center">
+    <span style="font-size:10px;color:var(--mut)">Dashboard PRAQ v2.0 — Pharma78 — Bois-d'Arcy (78) — Classification L1</span>
+  </div>
+
+</div>
+</body>
+</html>

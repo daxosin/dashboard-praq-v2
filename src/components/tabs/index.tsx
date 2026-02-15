@@ -1,0 +1,12 @@
+export { TabTableauDeBord } from "./TabTableauDeBord";
+export { TabDocuments } from "./TabDocuments";
+export { TabCapa } from "./TabCapa";
+export { TabAudits } from "./TabAudits";
+export { TabRisques } from "./TabRisques";
+export { default as TabVigilances } from "./TabVigilances";
+export { default as TabFormations } from "./TabFormations";
+export { TabEquipements } from "./TabEquipements";
+export { TabFournisseurs } from "./TabFournisseurs";
+export { TabReclamations } from "./TabReclamations";
+export { TabIndicateurs } from "./TabIndicateurs";
+export { TabRevueDirection } from "./TabRevueDirection";

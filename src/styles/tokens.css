@@ -1,0 +1,57 @@
+/* ═══════════════════════════════════════════════════════════════════
+   DESIGN TOKENS PHARMA78
+   Dashboard PRAQ v2 — ISO 9001:2015
+   Mode nuit (défaut) / Mode jour
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Mode nuit - défaut ("Salle de contrôle") */
+  --bg: #1A1A1A;
+  --card: #242424;
+  --elev: #2A2A2A;
+  --accent: #00FF88;
+  --accent-dim: rgba(0,255,136,0.10);
+  --text: #FFFFFF;
+  --sec: #C8C8C8;
+  --mut: #888888;
+  --brd: #505050;
+  --grn: #00FF88;
+  --amb: #FFB800;
+  --red: #FF4444;
+  --font: 'Montserrat', sans-serif;
+  --h1: #FFFFFF;
+  --h2: #FFFFFF;
+  --tag: #00FF88;
+  --bar-top: none;
+  --badge-plan-bg: #505050;
+  --badge-plan-c: #C8C8C8;
+  --risk-grn: rgba(0,255,136,0.08);
+  --risk-amb: rgba(255,184,0,0.15);
+  --risk-red: rgba(255,68,68,0.18);
+}
+
+[data-theme="light"] {
+  /* Mode jour ("Cabinet de consultation") */
+  --bg: #FAFBFC;
+  --card: #FFFFFF;
+  --elev: #F0F2F4;
+  --accent: #C4A35A;
+  --accent-dim: rgba(196,163,90,0.10);
+  --text: #1A1A1A;
+  --sec: #5A6570;
+  --mut: #8A929A;
+  --brd: #E5E7EB;
+  --grn: #2E7D5A;
+  --amb: #D4860B;
+  --red: #C0392B;
+  --font: Arial, sans-serif;
+  --h1: #1B4D5C;
+  --h2: #2A6478;
+  --tag: #3D8B8B;
+  --bar-top: linear-gradient(90deg,#1B4D5C,#3D8B8B);
+  --badge-plan-bg: #D0D5DA;
+  --badge-plan-c: #5A6570;
+  --risk-grn: rgba(46,125,90,0.06);
+  --risk-amb: rgba(212,134,11,0.08);
+  --risk-red: rgba(192,57,43,0.10);
+}
