@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
+import { useSupabase } from '@/app/providers';
 import type { SmqScore } from '@/lib/types';
 
 export function useSmqScore() {
@@ -18,7 +18,7 @@ export function useSmqScore() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const supabase = createClient();
+  const supabase = useSupabase();
 
   useEffect(() => {
     const calculateScore = async () => {

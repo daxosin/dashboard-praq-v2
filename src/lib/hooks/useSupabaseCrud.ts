@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@/lib/supabase';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSupabase } from '@/app/providers';
 
 interface UseSupabaseCrudOptions {
   select?: string;
@@ -17,7 +17,9 @@ export function useSupabaseCrud<T = any>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const supabase = createClient();
+  const supabase = useSupabase();
+  const filtersKey = useMemo(() => JSON.stringify(options.filters), [options.filters]);
+  const orderByKey = useMemo(() => JSON.stringify(options.orderBy), [options.orderBy]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -47,7 +49,7 @@ export function useSupabaseCrud<T = any>(
     } finally {
       setLoading(false);
     }
-  }, [tableName, options.select, options.filters, options.orderBy]);
+  }, [tableName, options.select, filtersKey, orderByKey]);
 
   useEffect(() => {
     fetchData();

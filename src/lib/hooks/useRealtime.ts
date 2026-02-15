@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase';
+import { useSupabase } from '@/app/providers';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export function useRealtime<T = any>(
@@ -9,7 +9,7 @@ export function useRealtime<T = any>(
   initialData: T[] = []
 ) {
   const [data, setData] = useState<T[]>(initialData);
-  const supabase = createClient();
+  const supabase = useSupabase();
 
   useEffect(() => {
     let channel: RealtimeChannel;

@@ -304,7 +304,7 @@ export const TabTableauDeBord: React.FC = () => {
               Aucune alerte active
             </div>
           ) : (
-            alerts.slice(0, 10).map((alert) => (
+            alerts.slice(0, 5).map((alert) => (
               <AlertLine
                 key={alert.id}
                 severity={alert.severity === "error" ? "red" : "amber"}

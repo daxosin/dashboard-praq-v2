@@ -76,7 +76,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
+    <div style={{ height: '100vh', backgroundColor: 'var(--bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <header style={{
         backgroundColor: 'var(--card)',
         borderBottom: '1px solid var(--border)',
@@ -260,7 +260,7 @@ export default function DashboardLayout({
         </div>
       </div>
 
-      <main style={{ padding: '24px' }}>
+      <main style={{ padding: '24px', flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         {children}
       </main>
     </div>

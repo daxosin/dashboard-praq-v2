@@ -77,22 +77,21 @@ function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+function getInitialTheme(): 'dark' | 'light' {
+  if (typeof document === 'undefined') return 'dark';
+  const cookieTheme = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('theme='))
+    ?.split('=')[1] as 'dark' | 'light' | undefined;
+  return cookieTheme || 'dark';
+}
+
 function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
 
   useEffect(() => {
-    const savedTheme = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('theme='))
-      ?.split('=')[1] as 'dark' | 'light' | undefined;
-
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    } else {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-  }, []);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';

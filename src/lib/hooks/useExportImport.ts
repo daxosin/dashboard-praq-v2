@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase';
+import { useSupabase } from '@/app/providers';
 import { exportAllData, exportTabData, importData } from '@/lib/export-import';
 
 export type ImportResults = Record<string, { success: number; errors: number }>;
@@ -9,7 +9,7 @@ export type ImportResults = Record<string, { success: number; errors: number }>;
 export function useExportImport() {
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState<ImportResults | null>(null);
-  const supabase = createClient();
+  const supabase = useSupabase();
 
   const exportAll = async () => {
     try {
