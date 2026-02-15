@@ -388,7 +388,7 @@ export const TabDocuments: React.FC = () => {
       {/* Graphiques */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Répartition par statut */}
-        <div className="bg-card border border-brd rounded-md p-4">
+        <div className="bg-card border border-brd rounded-xl p-6">
           <h3 className="text-[14px] font-semibold text-text mb-4">Répartition par statut</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={statusChartData}>
@@ -409,7 +409,7 @@ export const TabDocuments: React.FC = () => {
         </div>
 
         {/* Répartition par domaine */}
-        <div className="bg-card border border-brd rounded-md p-4">
+        <div className="bg-card border border-brd rounded-xl p-6">
           <h3 className="text-[14px] font-semibold text-text mb-4">Répartition par domaine</h3>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
@@ -444,7 +444,7 @@ export const TabDocuments: React.FC = () => {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="bg-card text-text border border-brd rounded px-3 py-1.5 text-[12px] outline-none focus:border-accent transition-colors"
+          className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px] outline-none focus:border-accent transition-colors"
         >
           <option value="all">Tous les statuts</option>
           <option value="Planifié">Planifié</option>
@@ -457,7 +457,7 @@ export const TabDocuments: React.FC = () => {
         <select
           value={filterDomain}
           onChange={(e) => setFilterDomain(e.target.value)}
-          className="bg-card text-text border border-brd rounded px-3 py-1.5 text-[12px] outline-none focus:border-accent transition-colors"
+          className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px] outline-none focus:border-accent transition-colors"
         >
           <option value="all">Tous les domaines</option>
           {domains.map((domain) => (
@@ -528,39 +528,39 @@ export const TabDocuments: React.FC = () => {
 
       {/* Modal - Add SOP */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Nouvelle SOP">
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold block mb-1">
+            <label className="text-[13px] font-semibold text-sec block mb-2">
               Code
             </label>
             <input
               type="text"
               value={newSop.code}
               onChange={(e) => setNewSop({ ...newSop, code: e.target.value })}
-              className="w-full bg-card text-text border border-brd rounded px-3 py-2 text-[13px] outline-none focus:border-accent transition-colors"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               placeholder="Ex: SOP-001"
             />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold block mb-1">
+            <label className="text-[13px] font-semibold text-sec block mb-2">
               Titre
             </label>
             <input
               type="text"
               value={newSop.title}
               onChange={(e) => setNewSop({ ...newSop, title: e.target.value })}
-              className="w-full bg-card text-text border border-brd rounded px-3 py-2 text-[13px] outline-none focus:border-accent transition-colors"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               placeholder="Titre de la SOP"
             />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold block mb-1">
+            <label className="text-[13px] font-semibold text-sec block mb-2">
               Domaine
             </label>
             <select
               value={newSop.domain_id}
               onChange={(e) => setNewSop({ ...newSop, domain_id: e.target.value })}
-              className="w-full bg-card text-text border border-brd rounded px-3 py-2 text-[13px] outline-none focus:border-accent transition-colors"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               <option value="">Sélectionner un domaine</option>
               {domains.map((domain) => (
@@ -571,25 +571,25 @@ export const TabDocuments: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold block mb-1">
+            <label className="text-[13px] font-semibold text-sec block mb-2">
               Responsable
             </label>
             <input
               type="text"
               value={newSop.owner}
               onChange={(e) => setNewSop({ ...newSop, owner: e.target.value })}
-              className="w-full bg-card text-text border border-brd rounded px-3 py-2 text-[13px] outline-none focus:border-accent transition-colors"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               placeholder="Nom du responsable"
             />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold block mb-1">
+            <label className="text-[13px] font-semibold text-sec block mb-2">
               Statut
             </label>
             <select
               value={newSop.status}
               onChange={(e) => setNewSop({ ...newSop, status: e.target.value as SopStatus })}
-              className="w-full bg-card text-text border border-brd rounded px-3 py-2 text-[13px] outline-none focus:border-accent transition-colors"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               <option value="Planifié">Planifié</option>
               <option value="En cours">En cours</option>
@@ -599,25 +599,25 @@ export const TabDocuments: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold block mb-1">
+            <label className="text-[13px] font-semibold text-sec block mb-2">
               Version
             </label>
             <input
               type="text"
               value={newSop.version}
               onChange={(e) => setNewSop({ ...newSop, version: e.target.value })}
-              className="w-full bg-card text-text border border-brd rounded px-3 py-2 text-[13px] outline-none focus:border-accent transition-colors"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               placeholder="Ex: 1.0"
             />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold block mb-1">
+            <label className="text-[13px] font-semibold text-sec block mb-2">
               Notes
             </label>
             <textarea
               value={newSop.notes}
               onChange={(e) => setNewSop({ ...newSop, notes: e.target.value })}
-              className="w-full bg-card text-text border border-brd rounded px-3 py-2 text-[13px] outline-none focus:border-accent transition-colors"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               rows={3}
               placeholder="Notes optionnelles"
             />
@@ -625,14 +625,14 @@ export const TabDocuments: React.FC = () => {
           <div className="flex gap-3 justify-end pt-2">
             <button
               onClick={() => setShowAddModal(false)}
-              className="bg-card border border-brd rounded-md px-4 py-2 text-[12px] font-medium text-text hover:bg-elev transition-colors"
+              className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
             >
               Annuler
             </button>
             <button
               onClick={handleCreateSop}
               disabled={!newSop.code || !newSop.title || !newSop.domain_id}
-              className="bg-accent border border-accent rounded-md px-4 py-2 text-[12px] font-semibold text-bg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Créer
             </button>

@@ -237,7 +237,7 @@ export function TabCapa() {
       key: "id",
       label: "ID",
       render: (capa) => (
-        <span className="text-xs font-mono text-[var(--accent)]">
+        <span className="text-xs font-mono text-accent">
           CAPA-{capa.id.substring(0, 4).toUpperCase()}
         </span>
       ),
@@ -368,7 +368,7 @@ export function TabCapa() {
       render: (capa) => (
         <button
           onClick={() => setDeleteId(capa.id)}
-          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
+          className="p-1.5 text-mut hover:text-red transition-colors"
           title="Supprimer"
         >
           <TrashIcon size={14} />
@@ -380,7 +380,7 @@ export function TabCapa() {
   if (loadingCapas || loadingDomains) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-[var(--text-muted)]">Chargement...</p>
+        <p className="text-mut">Chargement...</p>
       </div>
     );
   }
@@ -435,7 +435,7 @@ export function TabCapa() {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text"
         >
           <option value="all">Tous statuts</option>
           {STATUSES.map((s) => (
@@ -448,7 +448,7 @@ export function TabCapa() {
         <select
           value={filterSource}
           onChange={(e) => setFilterSource(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text"
         >
           <option value="all">Toutes sources</option>
           {SOURCES.map((s) => (
@@ -461,7 +461,7 @@ export function TabCapa() {
         <select
           value={filterDomain}
           onChange={(e) => setFilterDomain(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text"
         >
           <option value="all">Tous domaines</option>
           {domains.map((d) => (
@@ -474,7 +474,7 @@ export function TabCapa() {
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text"
         >
           <option value="all">Tous types</option>
           {TYPES.map((t) => (
@@ -495,8 +495,8 @@ export function TabCapa() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Analysis by Source */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Analyse par source</h3>
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">Analyse par source</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
@@ -519,8 +519,8 @@ export function TabCapa() {
         </div>
 
         {/* Analysis by Type */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Analyse par type</h3>
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">Analyse par type</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={analysisByType}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -540,8 +540,8 @@ export function TabCapa() {
       </div>
 
       {/* Trend Chart */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Tendance mensuelle</h3>
+      <div className="bg-card border border-brd rounded-xl p-6">
+        <h3 className="text-sm font-semibold text-text mb-4">Tendance mensuelle</h3>
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={trendData}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -568,13 +568,13 @@ export function TabCapa() {
           title="Nouvelle CAPA"
           onClose={() => setShowAddModal(false)}
         >
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Source</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Source</label>
               <select
                 value={newCapa.source}
                 onChange={(e) => setNewCapa({ ...newCapa, source: e.target.value as any })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 {SOURCES.map((s) => (
                   <option key={s} value={s}>
@@ -585,11 +585,11 @@ export function TabCapa() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Type</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Type</label>
               <select
                 value={newCapa.type}
                 onChange={(e) => setNewCapa({ ...newCapa, type: e.target.value as any })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 {TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -600,11 +600,11 @@ export function TabCapa() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Domaine</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Domaine</label>
               <select
                 value={newCapa.domain_id || ""}
                 onChange={(e) => setNewCapa({ ...newCapa, domain_id: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 <option value="">Sélectionner un domaine</option>
                 {domains.map((d) => (
@@ -616,65 +616,65 @@ export function TabCapa() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Description *
               </label>
               <textarea
                 value={newCapa.description}
                 onChange={(e) => setNewCapa({ ...newCapa, description: e.target.value })}
                 rows={4}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)] resize-none"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                 placeholder="Description détaillée de la non-conformité ou action..."
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Cause racine
               </label>
               <textarea
                 value={newCapa.root_cause || ""}
                 onChange={(e) => setNewCapa({ ...newCapa, root_cause: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)] resize-none"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                 placeholder="Analyse 5 pourquoi, ishikawa..."
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Action corrective
               </label>
               <textarea
                 value={newCapa.action || ""}
                 onChange={(e) => setNewCapa({ ...newCapa, action: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)] resize-none"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                 placeholder="Plan d'action pour traiter la cause..."
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Responsable
                 </label>
                 <input
                   type="text"
                   value={newCapa.owner || ""}
                   onChange={(e) => setNewCapa({ ...newCapa, owner: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                   placeholder="Nom du responsable"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Échéance</label>
+                <label className="block text-[13px] font-semibold text-sec mb-2">Échéance</label>
                 <input
                   type="date"
                   value={newCapa.due_date || ""}
                   onChange={(e) => setNewCapa({ ...newCapa, due_date: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 />
               </div>
             </div>
@@ -682,11 +682,11 @@ export function TabCapa() {
             {newCapa.source === "Terrain" && (
               <>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Zone</label>
+                  <label className="block text-[13px] font-semibold text-sec mb-2">Zone</label>
                   <select
                     value={newCapa.terrain_zone || ""}
                     onChange={(e) => setNewCapa({ ...newCapa, terrain_zone: e.target.value })}
-                    className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                    className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                   >
                     <option value="">Sélectionner une zone</option>
                     {ZONES.map((z) => (
@@ -698,13 +698,13 @@ export function TabCapa() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                  <label className="block text-[13px] font-semibold text-sec mb-2">
                     Gravité ressentie
                   </label>
                   <select
                     value={newCapa.terrain_severity || ""}
                     onChange={(e) => setNewCapa({ ...newCapa, terrain_severity: e.target.value })}
-                    className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                    className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                   >
                     <option value="">Non renseignée</option>
                     <option value="Faible">Faible</option>
@@ -718,14 +718,14 @@ export function TabCapa() {
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
               >
                 Annuler
               </button>
               <button
                 onClick={handleAdd}
                 disabled={!newCapa.description}
-                className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
               </button>

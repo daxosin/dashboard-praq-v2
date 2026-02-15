@@ -28,6 +28,33 @@
   --risk-grn: rgba(0,255,136,0.08);
   --risk-amb: rgba(255,184,0,0.15);
   --risk-red: rgba(255,68,68,0.18);
+
+  /* Aliases longues (compatibilité onglets) */
+  --card-bg: var(--card);
+  --border: var(--brd);
+  --text-primary: var(--text);
+  --text-secondary: var(--sec);
+  --text-muted: var(--mut);
+  --elevation-bg: var(--elev);
+  --elevation: var(--elev);
+  --muted: var(--mut);
+
+  /* Aliases --color-* (compatibilité graphiques Recharts) */
+  --color-grn: var(--grn);
+  --color-amb: var(--amb);
+  --color-red: var(--red);
+  --color-mut: var(--mut);
+  --color-muted: var(--mut);
+  --color-brd: var(--brd);
+  --color-border: var(--brd);
+  --color-sec: var(--sec);
+  --color-secondary: var(--sec);
+  --color-card: var(--card);
+  --color-elevated: var(--elev);
+  --color-text: var(--text);
+  --color-accent: var(--accent);
+  --color-ok: var(--grn);
+  --color-wip: var(--amb);
 }
 
 [data-theme="light"] {
@@ -54,4 +81,31 @@
   --risk-grn: rgba(46,125,90,0.06);
   --risk-amb: rgba(212,134,11,0.08);
   --risk-red: rgba(192,57,43,0.10);
+
+  /* Aliases longues (compatibilité onglets) */
+  --card-bg: var(--card);
+  --border: var(--brd);
+  --text-primary: var(--text);
+  --text-secondary: var(--sec);
+  --text-muted: var(--mut);
+  --elevation-bg: var(--elev);
+  --elevation: var(--elev);
+  --muted: var(--mut);
+
+  /* Aliases --color-* (compatibilité graphiques Recharts) */
+  --color-grn: var(--grn);
+  --color-amb: var(--amb);
+  --color-red: var(--red);
+  --color-mut: var(--mut);
+  --color-muted: var(--mut);
+  --color-brd: var(--brd);
+  --color-border: var(--brd);
+  --color-sec: var(--sec);
+  --color-secondary: var(--sec);
+  --color-card: var(--card);
+  --color-elevated: var(--elev);
+  --color-text: var(--text);
+  --color-accent: var(--accent);
+  --color-ok: var(--grn);
+  --color-wip: var(--amb);
 }

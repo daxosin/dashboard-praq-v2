@@ -50,4 +50,5 @@ export const TABS: TabConfig[] = [
   { number: 10, name: 'Réclamations', icon: 'msg', path: '/dashboard/reclamations', description: 'Satisfaction' },
   { number: 11, name: 'Indicateurs', icon: 'bar-chart', path: '/dashboard/indicateurs', description: 'Tendances' },
   { number: 12, name: 'Revue de direction', icon: 'clipboard', path: '/dashboard/revue-direction', description: 'Décisions §9.3' },
+  { number: 13, name: 'Administration', icon: 'settings', path: '/dashboard/administration', description: 'Utilisateurs, responsables' },
 ];

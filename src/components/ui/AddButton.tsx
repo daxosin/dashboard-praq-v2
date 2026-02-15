@@ -17,9 +17,9 @@ export const AddButton: React.FC<AddButtonProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`bg-transparent border border-dashed border-brd rounded-md px-5 py-2 cursor-pointer flex items-center gap-1.5 text-mut text-[11px] font-inherit hover:border-accent hover:text-accent transition-colors ${className}`}
+      className={`bg-accent text-[#000] border-none rounded-xl px-7 py-3.5 cursor-pointer flex items-center gap-2.5 text-[15px] font-bold shadow-lg shadow-accent/25 hover:shadow-accent/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 ${className}`}
     >
-      <PlusIcon size={14} />
+      <PlusIcon size={18} />
       <span>{label}</span>
     </button>
   );

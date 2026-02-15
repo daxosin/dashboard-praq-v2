@@ -329,7 +329,7 @@ export const TabRisques: React.FC = () => {
       render: (row: RiskWithDomain) => (
         <button
           onClick={() => setDeleteId(row.id)}
-          className="text-muted hover:text-accent transition-colors"
+          className="text-mut hover:text-accent transition-colors"
         >
           Supprimer
         </button>
@@ -345,7 +345,7 @@ export const TabRisques: React.FC = () => {
   };
 
   if (loadingRisks || loadingDomains) {
-    return <div className="p-8 text-secondary">Chargement des risques...</div>;
+    return <div className="p-8 text-sec">Chargement des risques...</div>;
   }
 
   return (
@@ -386,7 +386,7 @@ export const TabRisques: React.FC = () => {
           <select
             value={filterDomain}
             onChange={(e) => setFilterDomain(e.target.value)}
-            className="px-3 py-2 bg-card border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors"
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px] focus:outline-none focus:border-accent transition-colors"
           >
             <option value="all">Tous les domaines</option>
             {domains.map((d) => (
@@ -399,7 +399,7 @@ export const TabRisques: React.FC = () => {
           <select
             value={filterLevel}
             onChange={(e) => setFilterLevel(e.target.value)}
-            className="px-3 py-2 bg-card border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors"
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px] focus:outline-none focus:border-accent transition-colors"
           >
             <option value="all">Tous niveaux</option>
             <option value="Acceptable">Acceptable</option>
@@ -410,7 +410,7 @@ export const TabRisques: React.FC = () => {
           <select
             value={filterOwner}
             onChange={(e) => setFilterOwner(e.target.value)}
-            className="px-3 py-2 bg-card border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors"
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px] focus:outline-none focus:border-accent transition-colors"
           >
             <option value="all">Tous responsables</option>
             {owners.map((owner) => (
@@ -425,13 +425,13 @@ export const TabRisques: React.FC = () => {
       </div>
 
       {/* View Mode Tabs */}
-      <div className="flex gap-4 border-b border-border">
+      <div className="flex gap-4 border-b border-brd">
         <button
           onClick={() => setViewMode("matrice")}
           className={`px-4 py-2 text-sm font-semibold transition-colors ${
             viewMode === "matrice"
               ? "text-accent border-b-2 border-accent"
-              : "text-secondary hover:text-primary"
+              : "text-sec hover:text-text"
           }`}
         >
           Matrice 5x5
@@ -441,7 +441,7 @@ export const TabRisques: React.FC = () => {
           className={`px-4 py-2 text-sm font-semibold transition-colors ${
             viewMode === "amdec"
               ? "text-accent border-b-2 border-accent"
-              : "text-secondary hover:text-primary"
+              : "text-sec hover:text-text"
           }`}
         >
           Vue AMDEC
@@ -451,7 +451,7 @@ export const TabRisques: React.FC = () => {
           className={`px-4 py-2 text-sm font-semibold transition-colors ${
             viewMode === "domaine"
               ? "text-accent border-b-2 border-accent"
-              : "text-secondary hover:text-primary"
+              : "text-sec hover:text-text"
           }`}
         >
           Par domaine
@@ -461,25 +461,25 @@ export const TabRisques: React.FC = () => {
       {/* Matrice View */}
       {viewMode === "matrice" && (
         <div className="space-y-6">
-          <div className="bg-card p-6 rounded-lg border border-border">
-            <h3 className="text-sm font-semibold text-secondary mb-4 uppercase tracking-wider">
+          <div className="bg-card border border-brd rounded-xl p-6">
+            <h3 className="text-sm font-semibold text-sec mb-4 uppercase tracking-wider">
               Matrice Probabilité × Gravité
             </h3>
             <div className="grid gap-4">
               {/* Grid */}
               <div className="grid grid-cols-6 gap-2">
                 {/* Empty corner */}
-                <div className="h-10 flex items-center justify-center text-xs font-semibold text-muted"></div>
+                <div className="h-10 flex items-center justify-center text-xs font-semibold text-mut"></div>
                 {/* Gravity headers */}
                 {[1, 2, 3, 4, 5].map((g) => (
-                  <div key={g} className="h-10 flex items-center justify-center text-xs font-semibold text-secondary">
+                  <div key={g} className="h-10 flex items-center justify-center text-xs font-semibold text-sec">
                     G{g}
                   </div>
                 ))}
                 {/* Probability rows */}
                 {[5, 4, 3, 2, 1].map((p) => (
                   <React.Fragment key={p}>
-                    <div className="h-12 flex items-center justify-center text-xs font-semibold text-secondary">
+                    <div className="h-12 flex items-center justify-center text-xs font-semibold text-sec">
                       P{p}
                     </div>
                     {[1, 2, 3, 4, 5].map((g) => {
@@ -489,7 +489,7 @@ export const TabRisques: React.FC = () => {
                       return (
                         <div
                           key={`${p}-${g}`}
-                          className="h-12 rounded border border-border flex items-center justify-center relative"
+                          className="h-12 rounded border border-brd flex items-center justify-center relative"
                           style={{ backgroundColor: getCellColor(p, g) }}
                         >
                           {cellRisks.length > 0 && (
@@ -497,7 +497,7 @@ export const TabRisques: React.FC = () => {
                               {cellRisks.map((risk) => (
                                 <div
                                   key={risk.id}
-                                  className="w-3 h-3 rounded-full bg-card border-2 border-primary"
+                                  className="w-3 h-3 rounded-full bg-card border-2 border-text"
                                   title={risk.description}
                                 />
                               ))}
@@ -530,8 +530,8 @@ export const TabRisques: React.FC = () => {
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-card p-6 rounded-lg border border-border">
-              <h3 className="text-sm font-semibold text-secondary mb-4 uppercase tracking-wider">
+            <div className="bg-card border border-brd rounded-xl p-6">
+              <h3 className="text-sm font-semibold text-sec mb-4 uppercase tracking-wider">
                 Répartition par niveau
               </h3>
               <ResponsiveContainer width="100%" height={250}>
@@ -555,8 +555,8 @@ export const TabRisques: React.FC = () => {
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-card p-6 rounded-lg border border-border">
-              <h3 className="text-sm font-semibold text-secondary mb-4 uppercase tracking-wider">
+            <div className="bg-card border border-brd rounded-xl p-6">
+              <h3 className="text-sm font-semibold text-sec mb-4 uppercase tracking-wider">
                 Criticité par domaine
               </h3>
               <ResponsiveContainer width="100%" height={250}>
@@ -577,7 +577,7 @@ export const TabRisques: React.FC = () => {
 
       {/* AMDEC View */}
       {viewMode === "amdec" && (
-        <div className="bg-card rounded-lg border border-border overflow-hidden">
+        <div className="bg-card rounded-xl border border-brd overflow-hidden">
           <DataTable columns={columns} data={filteredRisks} />
         </div>
       )}
@@ -590,22 +590,22 @@ export const TabRisques: React.FC = () => {
             if (domainRisks.length === 0) return null;
 
             return (
-              <div key={domain.id} className="bg-card p-6 rounded-lg border border-border">
-                <h3 className="text-sm font-semibold text-secondary mb-4 uppercase tracking-wider">
+              <div key={domain.id} className="bg-card border border-brd rounded-xl p-6">
+                <h3 className="text-sm font-semibold text-sec mb-4 uppercase tracking-wider">
                   {domain.name}
                 </h3>
                 <div className="space-y-3">
                   {domainRisks.map((risk) => (
-                    <div key={risk.id} className="flex items-center justify-between p-3 bg-elevation rounded border border-border">
+                    <div key={risk.id} className="flex items-center justify-between p-3 bg-elev rounded border border-brd">
                       <div className="flex-1">
-                        <p className="text-sm text-primary font-medium">{risk.description}</p>
-                        <p className="text-xs text-muted mt-1">
+                        <p className="text-sm text-text font-medium">{risk.description}</p>
+                        <p className="text-xs text-mut mt-1">
                           P{risk.probability} × G{risk.gravity} × D{risk.detectability} = {risk.criticality}
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
                         <Badge variant={getLevelBadgeVariant(risk.level)}>{risk.level}</Badge>
-                        {risk.owner && <span className="text-xs text-secondary">{risk.owner}</span>}
+                        {risk.owner && <span className="text-xs text-sec">{risk.owner}</span>}
                       </div>
                     </div>
                   ))}
@@ -625,15 +625,15 @@ export const TabRisques: React.FC = () => {
           resetForm();
         }}
       >
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-secondary mb-2 uppercase tracking-wider">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Domaine
               </label>
               <select
                 value={formData.domain_id}
                 onChange={(e) => setFormData({ ...formData, domain_id: e.target.value })}
-                className="w-full px-3 py-2 bg-elevation border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 <option value="">Sélectionner un domaine</option>
                 {domains.map((d) => (
@@ -645,38 +645,38 @@ export const TabRisques: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-secondary mb-2 uppercase tracking-wider">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Description
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 bg-elevation border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors resize-none"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                 rows={3}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-secondary mb-2 uppercase tracking-wider">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Causes
                 </label>
                 <textarea
                   value={formData.causes}
                   onChange={(e) => setFormData({ ...formData, causes: e.target.value })}
-                  className="w-full px-3 py-2 bg-elevation border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors resize-none"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                   rows={2}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-secondary mb-2 uppercase tracking-wider">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Conséquences
                 </label>
                 <textarea
                   value={formData.consequences}
                   onChange={(e) => setFormData({ ...formData, consequences: e.target.value })}
-                  className="w-full px-3 py-2 bg-elevation border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors resize-none"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                   rows={2}
                 />
               </div>
@@ -684,13 +684,13 @@ export const TabRisques: React.FC = () => {
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-secondary mb-2 uppercase tracking-wider">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Probabilité (1-5)
                 </label>
                 <select
                   value={formData.probability}
                   onChange={(e) => setFormData({ ...formData, probability: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 bg-elevation border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
                   {[1, 2, 3, 4, 5].map((n) => (
                     <option key={n} value={n}>
@@ -701,13 +701,13 @@ export const TabRisques: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-secondary mb-2 uppercase tracking-wider">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Gravité (1-5)
                 </label>
                 <select
                   value={formData.gravity}
                   onChange={(e) => setFormData({ ...formData, gravity: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 bg-elevation border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
                   {[1, 2, 3, 4, 5].map((n) => (
                     <option key={n} value={n}>
@@ -718,13 +718,13 @@ export const TabRisques: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-secondary mb-2 uppercase tracking-wider">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Détectabilité (1-5)
                 </label>
                 <select
                   value={formData.detectability}
                   onChange={(e) => setFormData({ ...formData, detectability: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 bg-elevation border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
                   {[1, 2, 3, 4, 5].map((n) => (
                     <option key={n} value={n}>
@@ -736,57 +736,57 @@ export const TabRisques: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-secondary mb-2 uppercase tracking-wider">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Mitigation
               </label>
               <textarea
                 value={formData.mitigation}
                 onChange={(e) => setFormData({ ...formData, mitigation: e.target.value })}
-                className="w-full px-3 py-2 bg-elevation border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors resize-none"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                 rows={2}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-secondary mb-2 uppercase tracking-wider">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Responsable
                 </label>
                 <input
                   type="text"
                   value={formData.owner}
                   onChange={(e) => setFormData({ ...formData, owner: e.target.value })}
-                  className="w-full px-3 py-2 bg-elevation border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-secondary mb-2 uppercase tracking-wider">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Date de revue
                 </label>
                 <input
                   type="date"
                   value={formData.review_due}
                   onChange={(e) => setFormData({ ...formData, review_due: e.target.value })}
-                  className="w-full px-3 py-2 bg-elevation border border-border rounded text-sm text-primary focus:outline-none focus:border-accent transition-colors"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+            <div className="flex justify-end gap-3 pt-4 border-t border-brd">
               <button
                 onClick={() => {
                   setShowAddModal(false);
                   resetForm();
                 }}
-                className="px-4 py-2 text-sm text-secondary hover:text-primary transition-colors"
+                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
               >
                 Annuler
               </button>
               <button
                 onClick={handleCreate}
                 disabled={!formData.description || !formData.domain_id}
-                className="px-4 py-2 text-sm bg-accent text-background rounded font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
               </button>

@@ -395,7 +395,7 @@ export function TabEquipements() {
       render: (eq) => (
         <button
           onClick={() => setDeleteEquipmentId(eq.id)}
-          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
+          className="p-1.5 text-mut hover:text-red transition-colors"
           title="Supprimer"
         >
           <TrashIcon size={14} />
@@ -521,7 +521,7 @@ export function TabEquipements() {
       render: (m) => (
         <button
           onClick={() => setDeleteMaintenanceId(m.id)}
-          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
+          className="p-1.5 text-mut hover:text-red transition-colors"
           title="Supprimer"
         >
           <TrashIcon size={14} />
@@ -534,7 +534,7 @@ export function TabEquipements() {
     {
       key: "name",
       label: "Nom",
-      render: (eq) => <span className="text-sm text-[var(--text-primary)]">{eq.name}</span>,
+      render: (eq) => <span className="text-sm text-text">{eq.name}</span>,
     },
     {
       key: "category",
@@ -544,7 +544,7 @@ export function TabEquipements() {
     {
       key: "location",
       label: "Localisation",
-      render: (eq) => <span className="text-sm text-[var(--text-secondary)]">{eq.location || "-"}</span>,
+      render: (eq) => <span className="text-sm text-sec">{eq.location || "-"}</span>,
     },
     {
       key: "status",
@@ -563,7 +563,7 @@ export function TabEquipements() {
   if (loadingEquipments || loadingMaintenances) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-[var(--text-muted)]">Chargement...</p>
+        <p className="text-mut">Chargement...</p>
       </div>
     );
   }
@@ -617,9 +617,9 @@ export function TabEquipements() {
       )}
 
       {/* Section: Registre Équipements */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
+      <div className="bg-card border border-brd rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Registre Équipements</h2>
+          <h2 className="text-lg font-semibold text-text">Registre Équipements</h2>
           <AddButton onClick={() => setShowAddEquipmentModal(true)} />
         </div>
 
@@ -628,7 +628,7 @@ export function TabEquipements() {
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Toutes catégories</option>
             {EQUIPMENT_CATEGORIES.map((c) => (
@@ -641,7 +641,7 @@ export function TabEquipements() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Tous statuts</option>
             {EQUIPMENT_STATUSES.map((s) => (
@@ -654,7 +654,7 @@ export function TabEquipements() {
           <select
             value={filterCriticality}
             onChange={(e) => setFilterCriticality(e.target.value)}
-            className="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Toutes criticités</option>
             {CRITICALITIES.map((c) => (
@@ -667,7 +667,7 @@ export function TabEquipements() {
           <select
             value={filterLocation}
             onChange={(e) => setFilterLocation(e.target.value)}
-            className="px-3 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Toutes localisations</option>
             {LOCATIONS.map((l) => (
@@ -682,9 +682,9 @@ export function TabEquipements() {
       </div>
 
       {/* Section: Calendrier Maintenance */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
+      <div className="bg-card border border-brd rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Calendrier Maintenance</h2>
+          <h2 className="text-lg font-semibold text-text">Calendrier Maintenance</h2>
           <AddButton onClick={() => setShowAddMaintenanceModal(true)} />
         </div>
 
@@ -695,16 +695,16 @@ export function TabEquipements() {
       </div>
 
       {/* Section: Chaîne du froid */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Chaîne du froid</h2>
+      <div className="bg-card border border-brd rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-text mb-4">Chaîne du froid</h2>
         <DataTable columns={coldChainColumns} data={coldChainEquipments} />
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Maintenances par mois */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">
             Maintenances par mois
           </h3>
           <ResponsiveContainer width="100%" height={280}>
@@ -728,8 +728,8 @@ export function TabEquipements() {
         </div>
 
         {/* Équipements par catégorie */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">
             Équipements par catégorie
           </h3>
           <ResponsiveContainer width="100%" height={280}>
@@ -763,27 +763,27 @@ export function TabEquipements() {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Nom *
               </label>
               <input
                 type="text"
                 value={newEquipment.name}
                 onChange={(e) => setNewEquipment({ ...newEquipment, name: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Nom de l'équipement"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Catégorie
                 </label>
                 <select
                   value={newEquipment.category}
                   onChange={(e) => setNewEquipment({ ...newEquipment, category: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
                   {EQUIPMENT_CATEGORIES.map((c) => (
                     <option key={c} value={c}>
@@ -794,13 +794,13 @@ export function TabEquipements() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Criticité
                 </label>
                 <select
                   value={newEquipment.criticality}
                   onChange={(e) => setNewEquipment({ ...newEquipment, criticality: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
                   {CRITICALITIES.map((c) => (
                     <option key={c} value={c}>
@@ -813,27 +813,27 @@ export function TabEquipements() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Marque / Modèle
                 </label>
                 <input
                   type="text"
                   value={newEquipment.brand_model || ""}
                   onChange={(e) => setNewEquipment({ ...newEquipment, brand_model: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                   placeholder="Fabricant et modèle"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   N° série
                 </label>
                 <input
                   type="text"
                   value={newEquipment.serial_no || ""}
                   onChange={(e) => setNewEquipment({ ...newEquipment, serial_no: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                   placeholder="Numéro de série"
                 />
               </div>
@@ -841,13 +841,13 @@ export function TabEquipements() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Localisation
                 </label>
                 <select
                   value={newEquipment.location || ""}
                   onChange={(e) => setNewEquipment({ ...newEquipment, location: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
                   <option value="">Sélectionner</option>
                   {LOCATIONS.map((l) => (
@@ -859,7 +859,7 @@ export function TabEquipements() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Mise en service
                 </label>
                 <input
@@ -868,19 +868,19 @@ export function TabEquipements() {
                   onChange={(e) =>
                     setNewEquipment({ ...newEquipment, commissioned_at: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Statut
               </label>
               <select
                 value={newEquipment.status}
                 onChange={(e) => setNewEquipment({ ...newEquipment, status: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 {EQUIPMENT_STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -893,14 +893,14 @@ export function TabEquipements() {
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={() => setShowAddEquipmentModal(false)}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
               >
                 Annuler
               </button>
               <button
                 onClick={handleAddEquipment}
                 disabled={!newEquipment.name}
-                className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
               </button>
@@ -918,13 +918,13 @@ export function TabEquipements() {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Équipement *
               </label>
               <select
                 value={newMaintenance.equipment_id}
                 onChange={(e) => setNewMaintenance({ ...newMaintenance, equipment_id: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 <option value="">Sélectionner un équipement</option>
                 {equipments.map((e) => (
@@ -937,13 +937,13 @@ export function TabEquipements() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Type
                 </label>
                 <select
                   value={newMaintenance.type}
                   onChange={(e) => setNewMaintenance({ ...newMaintenance, type: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
                   {MAINTENANCE_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -954,13 +954,13 @@ export function TabEquipements() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Fréquence
                 </label>
                 <select
                   value={newMaintenance.frequency || ""}
                   onChange={(e) => setNewMaintenance({ ...newMaintenance, frequency: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
                   {FREQUENCIES.map((f) => (
                     <option key={f} value={f}>
@@ -973,7 +973,7 @@ export function TabEquipements() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Dernière réalisation
                 </label>
                 <input
@@ -982,12 +982,12 @@ export function TabEquipements() {
                   onChange={(e) =>
                     setNewMaintenance({ ...newMaintenance, last_done_at: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Prochaine échéance *
                 </label>
                 <input
@@ -996,39 +996,39 @@ export function TabEquipements() {
                   onChange={(e) =>
                     setNewMaintenance({ ...newMaintenance, next_due_at: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Prestataire
               </label>
               <input
                 type="text"
                 value={newMaintenance.provider || ""}
                 onChange={(e) => setNewMaintenance({ ...newMaintenance, provider: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Nom du prestataire"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Résultat
               </label>
               <input
                 type="text"
                 value={newMaintenance.result || ""}
                 onChange={(e) => setNewMaintenance({ ...newMaintenance, result: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Résultat de la maintenance"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Référence certificat
               </label>
               <input
@@ -1037,7 +1037,7 @@ export function TabEquipements() {
                 onChange={(e) =>
                   setNewMaintenance({ ...newMaintenance, certificate_ref: e.target.value })
                 }
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Numéro certificat"
               />
             </div>
@@ -1045,14 +1045,14 @@ export function TabEquipements() {
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={() => setShowAddMaintenanceModal(false)}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
               >
                 Annuler
               </button>
               <button
                 onClick={handleAddMaintenance}
                 disabled={!newMaintenance.equipment_id || !newMaintenance.next_due_at}
-                className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
               </button>

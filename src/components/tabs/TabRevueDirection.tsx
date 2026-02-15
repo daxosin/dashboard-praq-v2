@@ -413,7 +413,7 @@ export function TabRevueDirection() {
       render: (review) => (
         <button
           onClick={() => setDeleteReviewId(review.id)}
-          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
+          className="p-1.5 text-mut hover:text-red transition-colors"
           title="Supprimer"
         >
           <TrashIcon size={14} />
@@ -429,7 +429,7 @@ export function TabRevueDirection() {
       render: (action) => {
         const review = reviews.find((r) => r.id === action.review_id);
         return (
-          <span className="text-xs text-[var(--text-secondary)]">
+          <span className="text-xs text-sec">
             {review?.date || "Non spécifiée"}
           </span>
         );
@@ -520,7 +520,7 @@ export function TabRevueDirection() {
       render: (action) => (
         <button
           onClick={() => setDeleteActionId(action.id)}
-          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
+          className="p-1.5 text-mut hover:text-red transition-colors"
           title="Supprimer"
         >
           <TrashIcon size={14} />
@@ -532,7 +532,7 @@ export function TabRevueDirection() {
   if (loadingReviews || loadingActions) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-[var(--text-muted)]">Chargement...</p>
+        <p className="text-mut">Chargement...</p>
       </div>
     );
   }
@@ -564,14 +564,14 @@ export function TabRevueDirection() {
       </div>
 
       {/* ISO 9.3 Auto-Aggregated Input Data */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-6">
+      <div className="bg-card border border-brd rounded-xl p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+          <h2 className="text-lg font-semibold text-text">
             Données d'entrée § 9.3 ISO (auto-agrégées)
           </h2>
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--accent)] text-[var(--bg)] rounded text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent text-[#000] rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
           >
             <DownloadIcon size={14} />
             Export rapport
@@ -580,29 +580,29 @@ export function TabRevueDirection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* 1. Previous review actions status */}
-          <div className="bg-[var(--bg)] border border-[var(--border)] rounded p-4">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">
+          <div className="bg-bg border border-brd rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-text mb-3">
               1. Statut actions revue précédente
             </h3>
             <div className="space-y-2">
               {Object.entries(isoData.actionsByStatus).map(([status, count]) => (
                 <div key={status} className="flex justify-between text-xs">
-                  <span className="text-[var(--text-secondary)]">{status}</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{count}</span>
+                  <span className="text-sec">{status}</span>
+                  <span className="font-semibold text-text">{count}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* 2. Quality indicators evolution */}
-          <div className="bg-[var(--bg)] border border-[var(--border)] rounded p-4">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">
+          <div className="bg-bg border border-brd rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-text mb-3">
               2. Évolution indicateurs qualité
             </h3>
             <div className="space-y-2">
               {isoData.indicatorPerformance.slice(0, 3).map((ind, idx) => (
                 <div key={idx} className="flex justify-between text-xs">
-                  <span className="text-[var(--text-secondary)] truncate">{ind.label}</span>
+                  <span className="text-sec truncate">{ind.label}</span>
                   <span
                     className="font-semibold"
                     style={{ color: ind.onTarget ? THEME_COLORS.grn : THEME_COLORS.red }}
@@ -615,44 +615,44 @@ export function TabRevueDirection() {
           </div>
 
           {/* 3. Audit results */}
-          <div className="bg-[var(--bg)] border border-[var(--border)] rounded p-4">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">3. Résultats audits</h3>
+          <div className="bg-bg border border-brd rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-text mb-3">3. Résultats audits</h3>
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Réalisés</span>
-                <span className="font-semibold text-[var(--text-primary)]">{isoData.audits.completed}</span>
+                <span className="text-sec">Réalisés</span>
+                <span className="font-semibold text-text">{isoData.audits.completed}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Constats majeurs</span>
-                <span className="font-semibold text-[var(--red)]">{isoData.audits.majorFindings}</span>
+                <span className="text-sec">Constats majeurs</span>
+                <span className="font-semibold text-red">{isoData.audits.majorFindings}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Total constats</span>
-                <span className="font-semibold text-[var(--text-primary)]">{isoData.audits.totalFindings}</span>
+                <span className="text-sec">Total constats</span>
+                <span className="font-semibold text-text">{isoData.audits.totalFindings}</span>
               </div>
             </div>
           </div>
 
           {/* 4. Process performance */}
-          <div className="bg-[var(--bg)] border border-[var(--border)] rounded p-4">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">
+          <div className="bg-bg border border-brd rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-text mb-3">
               4. Performance processus
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Vert</span>
+                <span className="text-sec">Vert</span>
                 <span className="font-semibold" style={{ color: THEME_COLORS.grn }}>
                   {isoData.processHealth.green}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Ambre</span>
+                <span className="text-sec">Ambre</span>
                 <span className="font-semibold" style={{ color: THEME_COLORS.amb }}>
                   {isoData.processHealth.amber}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Rouge</span>
+                <span className="text-sec">Rouge</span>
                 <span className="font-semibold" style={{ color: THEME_COLORS.red }}>
                   {isoData.processHealth.red}
                 </span>
@@ -661,39 +661,39 @@ export function TabRevueDirection() {
           </div>
 
           {/* 5. NC and CAPA */}
-          <div className="bg-[var(--bg)] border border-[var(--border)] rounded p-4">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">5. NC et CAPA</h3>
+          <div className="bg-bg border border-brd rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-text mb-3">5. NC et CAPA</h3>
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Ouvertes</span>
-                <span className="font-semibold text-[var(--text-primary)]">{isoData.capas.open}</span>
+                <span className="text-sec">Ouvertes</span>
+                <span className="font-semibold text-text">{isoData.capas.open}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">En retard</span>
-                <span className="font-semibold text-[var(--red)]">{isoData.capas.overdue}</span>
+                <span className="text-sec">En retard</span>
+                <span className="font-semibold text-red">{isoData.capas.overdue}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Taux clôture</span>
-                <span className="font-semibold text-[var(--text-primary)]">{isoData.capas.closureRate}%</span>
+                <span className="text-sec">Taux clôture</span>
+                <span className="font-semibold text-text">{isoData.capas.closureRate}%</span>
               </div>
             </div>
           </div>
 
           {/* 6. Stakeholder satisfaction */}
-          <div className="bg-[var(--bg)] border border-[var(--border)] rounded p-4">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">
+          <div className="bg-bg border border-brd rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-text mb-3">
               6. Satisfaction parties intéressées
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Réclamations ouvertes</span>
-                <span className="font-semibold text-[var(--text-primary)]">
+                <span className="text-sec">Réclamations ouvertes</span>
+                <span className="font-semibold text-text">
                   {isoData.stakeholders.openComplaints}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Satisfaction moyenne</span>
-                <span className="font-semibold text-[var(--text-primary)]">
+                <span className="text-sec">Satisfaction moyenne</span>
+                <span className="font-semibold text-text">
                   {isoData.stakeholders.avgSatisfaction}/5
                 </span>
               </div>
@@ -701,45 +701,45 @@ export function TabRevueDirection() {
           </div>
 
           {/* 7. Risks and opportunities */}
-          <div className="bg-[var(--bg)] border border-[var(--border)] rounded p-4">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">
+          <div className="bg-bg border border-brd rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-text mb-3">
               7. Risques et opportunités
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Total risques</span>
-                <span className="font-semibold text-[var(--text-primary)]">{isoData.risks.total}</span>
+                <span className="text-sec">Total risques</span>
+                <span className="font-semibold text-text">{isoData.risks.total}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Inacceptables</span>
-                <span className="font-semibold text-[var(--red)]">{isoData.risks.unacceptable}</span>
+                <span className="text-sec">Inacceptables</span>
+                <span className="font-semibold text-red">{isoData.risks.unacceptable}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Actions</span>
-                <span className="font-semibold text-[var(--text-primary)]">{isoData.risks.actions}</span>
+                <span className="text-sec">Actions</span>
+                <span className="font-semibold text-text">{isoData.risks.actions}</span>
               </div>
             </div>
           </div>
 
           {/* 8. Resources */}
-          <div className="bg-[var(--bg)] border border-[var(--border)] rounded p-4">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">8. Ressources</h3>
+          <div className="bg-bg border border-brd rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-text mb-3">8. Ressources</h3>
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Habilitations</span>
-                <span className="font-semibold text-[var(--text-primary)]">
+                <span className="text-sec">Habilitations</span>
+                <span className="font-semibold text-text">
                   {isoData.resources.qualificationRate}%
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Formations</span>
-                <span className="font-semibold text-[var(--text-primary)]">
+                <span className="text-sec">Formations</span>
+                <span className="font-semibold text-text">
                   {isoData.resources.totalTrainings}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Équipements conformes</span>
-                <span className="font-semibold text-[var(--text-primary)]">
+                <span className="text-sec">Équipements conformes</span>
+                <span className="font-semibold text-text">
                   {isoData.resources.equipmentRate}%
                 </span>
               </div>
@@ -751,7 +751,7 @@ export function TabRevueDirection() {
       {/* Reviews DataTable */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Revues de direction</h2>
+          <h2 className="text-lg font-semibold text-text">Revues de direction</h2>
           <AddButton onClick={() => setShowAddReviewModal(true)} />
         </div>
         <DataTable columns={reviewColumns} data={reviews} />
@@ -760,7 +760,7 @@ export function TabRevueDirection() {
       {/* Review Actions DataTable */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Actions de revue</h2>
+          <h2 className="text-lg font-semibold text-text">Actions de revue</h2>
           <AddButton onClick={() => setShowAddActionModal(true)} />
         </div>
 
@@ -769,7 +769,7 @@ export function TabRevueDirection() {
           <select
             value={filterReview}
             onChange={(e) => setFilterReview(e.target.value)}
-            className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Toutes revues</option>
             {reviews.map((r) => (
@@ -782,7 +782,7 @@ export function TabRevueDirection() {
           <select
             value={filterActionStatus}
             onChange={(e) => setFilterActionStatus(e.target.value)}
-            className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Tous statuts</option>
             {ACTION_STATUSES.map((s) => (
@@ -799,8 +799,8 @@ export function TabRevueDirection() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Actions by status */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Actions par statut</h3>
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">Actions par statut</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={actionsByStatusChart}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -819,8 +819,8 @@ export function TabRevueDirection() {
         </div>
 
         {/* Decisions distribution */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Répartition décisions</h3>
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">Répartition décisions</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
@@ -852,34 +852,34 @@ export function TabRevueDirection() {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Date *</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Date *</label>
               <input
                 type="date"
                 value={newReview.date}
                 onChange={(e) => setNewReview({ ...newReview, date: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Participants
               </label>
               <input
                 type="text"
                 value={newReview.participants || ""}
                 onChange={(e) => setNewReview({ ...newReview, participants: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Liste des participants"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Statut</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Statut</label>
               <select
                 value={newReview.status}
                 onChange={(e) => setNewReview({ ...newReview, status: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 {REVIEW_STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -890,14 +890,14 @@ export function TabRevueDirection() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Notes contexte
               </label>
               <textarea
                 value={newReview.context_notes || ""}
                 onChange={(e) => setNewReview({ ...newReview, context_notes: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)] resize-none"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                 placeholder="Notes sur le contexte de la revue..."
               />
             </div>
@@ -905,14 +905,14 @@ export function TabRevueDirection() {
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={() => setShowAddReviewModal(false)}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
               >
                 Annuler
               </button>
               <button
                 onClick={handleAddReview}
                 disabled={!newReview.date}
-                className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
               </button>
@@ -930,13 +930,13 @@ export function TabRevueDirection() {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Revue liée *
               </label>
               <select
                 value={newAction.review_id}
                 onChange={(e) => setNewAction({ ...newAction, review_id: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 <option value="">Sélectionner une revue</option>
                 {reviews.map((r) => (
@@ -948,60 +948,60 @@ export function TabRevueDirection() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Décision *
               </label>
               <textarea
                 value={newAction.decision}
                 onChange={(e) => setNewAction({ ...newAction, decision: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)] resize-none"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                 placeholder="Décision prise lors de la revue..."
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Action</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Action</label>
               <textarea
                 value={newAction.action || ""}
                 onChange={(e) => setNewAction({ ...newAction, action: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)] resize-none"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                 placeholder="Action à réaliser..."
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Responsable
                 </label>
                 <input
                   type="text"
                   value={newAction.owner || ""}
                   onChange={(e) => setNewAction({ ...newAction, owner: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                   placeholder="Nom du responsable"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Échéance</label>
+                <label className="block text-[13px] font-semibold text-sec mb-2">Échéance</label>
                 <input
                   type="date"
                   value={newAction.due_date || ""}
                   onChange={(e) => setNewAction({ ...newAction, due_date: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Statut</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Statut</label>
               <select
                 value={newAction.status}
                 onChange={(e) => setNewAction({ ...newAction, status: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 {ACTION_STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -1014,14 +1014,14 @@ export function TabRevueDirection() {
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={() => setShowAddActionModal(false)}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
               >
                 Annuler
               </button>
               <button
                 onClick={handleAddAction}
                 disabled={!newAction.review_id || !newAction.decision}
-                className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
               </button>

@@ -450,7 +450,7 @@ const TabFormations: React.FC = () => {
   const loading = staffLoading || qualificationsLoading || trainingsLoading;
 
   if (loading) {
-    return <div className="p-6 text-secondary">Chargement...</div>;
+    return <div className="p-6 text-sec">Chargement...</div>;
   }
 
   return (
@@ -490,7 +490,7 @@ const TabFormations: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-brd">
                 <th className="text-left p-3 text-tag sticky left-0 bg-card z-10">COLLABORATEUR</th>
                 {skillMatrix[0]?.skills.map((skill) => (
                   <th key={skill} className="text-left p-3 text-tag whitespace-nowrap">
@@ -501,7 +501,7 @@ const TabFormations: React.FC = () => {
             </thead>
             <tbody>
               {skillMatrix.map((row) => (
-                <tr key={row.staff.id} className="border-b border-border hover:bg-elevated transition-colors">
+                <tr key={row.staff.id} className="border-b border-brd hover:bg-elev transition-colors">
                   <td className="p-3 font-medium sticky left-0 bg-card">{row.staff.name}</td>
                   {row.skills.map((skill) => (
                     <td key={skill} className="p-3">
@@ -577,11 +577,11 @@ const TabFormations: React.FC = () => {
         <h3 className="text-h3 mb-3">Filtres</h3>
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[200px]">
-            <label className="text-tag block mb-1">COLLABORATEUR</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">COLLABORATEUR</label>
             <select
               value={filterStaff}
               onChange={(e) => setFilterStaff(e.target.value)}
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               <option value="">Tous</option>
               {staff.map((s) => (
@@ -592,21 +592,21 @@ const TabFormations: React.FC = () => {
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="text-tag block mb-1">COMPÉTENCE</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">COMPÉTENCE</label>
             <input
               type="text"
               value={filterSkill}
               onChange={(e) => setFilterSkill(e.target.value)}
               placeholder="Rechercher..."
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="text-tag block mb-1">STATUT</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">STATUT</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               <option value="">Tous</option>
               <option value="valide">Valide</option>
@@ -641,13 +641,13 @@ const TabFormations: React.FC = () => {
         onClose={() => setShowAddTrainingModal(false)}
         title="Nouvelle formation"
       >
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="text-tag block mb-1">COLLABORATEUR *</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">COLLABORATEUR *</label>
             <select
               value={newTraining.staff_id}
               onChange={(e) => setNewTraining({ ...newTraining, staff_id: e.target.value })}
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               <option value="">Sélectionner</option>
               {staff.map((s) => (
@@ -658,43 +658,43 @@ const TabFormations: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="text-tag block mb-1">TITRE *</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">TITRE *</label>
             <input
               type="text"
               value={newTraining.title}
               onChange={(e) => setNewTraining({ ...newTraining, title: e.target.value })}
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
           <div>
-            <label className="text-tag block mb-1">TYPE *</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">TYPE *</label>
             <input
               type="text"
               value={newTraining.type}
               onChange={(e) => setNewTraining({ ...newTraining, type: e.target.value })}
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
           <div>
-            <label className="text-tag block mb-1">DATE PLANIFIÉE</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">DATE PLANIFIÉE</label>
             <input
               type="date"
               value={newTraining.planned_at || ""}
               onChange={(e) => setNewTraining({ ...newTraining, planned_at: e.target.value })}
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <button
               onClick={() => setShowAddTrainingModal(false)}
-              className="px-4 py-2 text-sm border border-border rounded hover:bg-elevated transition-colors"
+              className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
             >
               Annuler
             </button>
             <button
               onClick={handleAddTraining}
               disabled={!newTraining.staff_id || !newTraining.title || !newTraining.type}
-              className="px-4 py-2 text-sm bg-accent text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Créer
             </button>
@@ -708,13 +708,13 @@ const TabFormations: React.FC = () => {
         onClose={() => setShowAddQualificationModal(false)}
         title="Nouvelle habilitation"
       >
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="text-tag block mb-1">COLLABORATEUR *</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">COLLABORATEUR *</label>
             <select
               value={newQualification.staff_id}
               onChange={(e) => setNewQualification({ ...newQualification, staff_id: e.target.value })}
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               <option value="">Sélectionner</option>
               {staff.map((s) => (
@@ -725,43 +725,43 @@ const TabFormations: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="text-tag block mb-1">COMPÉTENCE *</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">COMPÉTENCE *</label>
             <input
               type="text"
               value={newQualification.skill_name}
               onChange={(e) => setNewQualification({ ...newQualification, skill_name: e.target.value })}
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
           <div>
-            <label className="text-tag block mb-1">DATE OBTENTION *</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">DATE OBTENTION *</label>
             <input
               type="date"
               value={newQualification.obtained_at}
               onChange={(e) => setNewQualification({ ...newQualification, obtained_at: e.target.value })}
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
           <div>
-            <label className="text-tag block mb-1">DATE EXPIRATION</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">DATE EXPIRATION</label>
             <input
               type="date"
               value={newQualification.expires_at || ""}
               onChange={(e) => setNewQualification({ ...newQualification, expires_at: e.target.value || null })}
-              className="w-full bg-elevated border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <button
               onClick={() => setShowAddQualificationModal(false)}
-              className="px-4 py-2 text-sm border border-border rounded hover:bg-elevated transition-colors"
+              className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
             >
               Annuler
             </button>
             <button
               onClick={handleAddQualification}
               disabled={!newQualification.staff_id || !newQualification.skill_name || !newQualification.obtained_at}
-              className="px-4 py-2 text-sm bg-accent text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Créer
             </button>

@@ -5,13 +5,10 @@ import { useSupabaseCrud } from "@/lib/hooks/useSupabaseCrud";
 import type { Audit, AuditFinding, Domain, AuditInsert, AuditFindingInsert, Capa } from "@/lib/database.types";
 import {
   KpiCard,
-  DataTable,
-  EditableCell,
   Badge,
   AddButton,
   Modal,
   ConfirmDelete,
-  type ColumnDef,
 } from "@/components/ui";
 import { ClipboardIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon } from "@/components/icons";
 import {
@@ -45,12 +42,33 @@ const THEME_COLORS = {
   grn: "var(--grn)",
   amb: "var(--amb)",
   red: "var(--red)",
-  muted: "var(--text-muted)",
+  muted: "var(--mut)",
 };
 
 const CHART_COLORS = ["#00FF88", "#FFB800", "#FF4444", "#00CCFF"];
 
+/* ------------------------------------------------------------------ */
+/*  Shared style constants for form fields                            */
+/* ------------------------------------------------------------------ */
+const inputCls =
+  "w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text focus:border-accent focus:ring-1 focus:ring-accent/30 outline-none transition-all";
+
+const labelCls = "block text-[13px] font-semibold text-sec mb-2";
+
+const btnPrimary =
+  "px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed";
+
+const btnCancel =
+  "px-6 py-3 text-sec hover:text-text rounded-xl text-[15px] transition-colors";
+
+const filterCls =
+  "px-4 py-2.5 rounded-xl text-[14px] bg-card text-text border border-brd focus:border-accent focus:ring-1 focus:ring-accent/30 outline-none transition-all";
+
+/* ================================================================== */
+/*  TabAudits                                                         */
+/* ================================================================== */
 export function TabAudits() {
+  /* ---- data hooks ------------------------------------------------ */
   const { data: audits, loading: loadingAudits, create, update, remove } = useSupabaseCrud<Audit>("audits", {
     orderBy: { column: "created_at", ascending: false },
   });
@@ -65,6 +83,7 @@ export function TabAudits() {
 
   const { data: capas } = useSupabaseCrud<Capa>("capas");
 
+  /* ---- local state ----------------------------------------------- */
   const [showAddModal, setShowAddModal] = useState(false);
   const [showFindingModal, setShowFindingModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -89,7 +108,7 @@ export function TabAudits() {
     description: "",
   });
 
-  // Calculate KPIs
+  /* ---- KPIs ------------------------------------------------------ */
   const kpis = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const auditsThisYear = audits.filter((a) => {
@@ -112,7 +131,7 @@ export function TabAudits() {
     };
   }, [audits]);
 
-  // Filter audits
+  /* ---- filtered list --------------------------------------------- */
   const filteredAudits = useMemo(() => {
     return audits.filter((a) => {
       if (filterStatus !== "all" && a.status !== filterStatus) return false;
@@ -122,7 +141,7 @@ export function TabAudits() {
     });
   }, [audits, filterStatus, filterDomain, filterAuditor]);
 
-  // Timeline data: audits by month
+  /* ---- chart data: timeline -------------------------------------- */
   const timelineData = useMemo(() => {
     const monthlyData: Record<string, { month: string; Planifié: number; Réalisé: number; Reporté: number }> = {};
 
@@ -146,7 +165,7 @@ export function TabAudits() {
     return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
   }, [audits]);
 
-  // Findings by type
+  /* ---- chart data: findings by type ------------------------------ */
   const findingsByType = useMemo(() => {
     const counts: Record<string, number> = {
       Majeur: 0,
@@ -164,19 +183,19 @@ export function TabAudits() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [findings]);
 
-  // Audits by domain
+  /* ---- chart data: audits by domain ------------------------------ */
   const auditsByDomain = useMemo(() => {
     const counts: Record<string, number> = {};
-    const domainMap: Record<string, string> = {};
+    const dMap: Record<string, string> = {};
 
     domains.forEach((d) => {
-      domainMap[d.id] = d.name;
+      dMap[d.id] = d.name;
       counts[d.name] = 0;
     });
 
     audits.forEach((a) => {
-      if (a.domain_id && domainMap[a.domain_id]) {
-        counts[domainMap[a.domain_id]] += 1;
+      if (a.domain_id && dMap[a.domain_id]) {
+        counts[dMap[a.domain_id]] += 1;
       }
     });
 
@@ -185,6 +204,7 @@ export function TabAudits() {
       .filter((item) => item.value > 0);
   }, [audits, domains]);
 
+  /* ---- domain lookup map ----------------------------------------- */
   const domainMap = useMemo(() => {
     const map: Record<string, string> = {};
     domains.forEach((d) => {
@@ -193,6 +213,7 @@ export function TabAudits() {
     return map;
   }, [domains]);
 
+  /* ---- auditor list for filter ----------------------------------- */
   const auditorList = useMemo(() => {
     const auditors = new Set<string>();
     audits.forEach((a) => {
@@ -201,6 +222,7 @@ export function TabAudits() {
     return Array.from(auditors).sort();
   }, [audits]);
 
+  /* ---- handlers -------------------------------------------------- */
   const handleAdd = async () => {
     try {
       await create(newAudit as AuditInsert);
@@ -280,183 +302,21 @@ export function TabAudits() {
     }
   };
 
-  const columns: ColumnDef<Audit>[] = [
-    {
-      key: "expand",
-      label: "",
-      render: (audit) => {
-        const auditFindings = findings.filter((f) => f.audit_id === audit.id);
-        if (auditFindings.length === 0) return null;
-
-        return (
-          <button
-            onClick={() => setExpandedAudit(expandedAudit === audit.id ? null : audit.id)}
-            className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            {expandedAudit === audit.id ? <ChevronDownIcon size={14} /> : <ChevronRightIcon size={14} />}
-          </button>
-        );
-      },
-    },
-    {
-      key: "reference",
-      label: "Référence",
-      render: (audit) => (
-        <EditableCell
-          value={audit.reference}
-          type="text"
-          onSave={async (value) => {
-            await update(audit.id, { reference: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "type",
-      label: "Type",
-      render: (audit) => (
-        <EditableCell
-          value={audit.type}
-          type="select"
-          options={AUDIT_TYPES.map((t) => ({ value: t, label: t }))}
-          onSave={async (value) => {
-            await update(audit.id, { type: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "domain_id",
-      label: "Domaine",
-      render: (audit) => (
-        <EditableCell
-          value={audit.domain_id || ""}
-          type="select"
-          options={domains.map((d) => ({ value: d.id, label: d.name }))}
-          onSave={async (value) => {
-            await update(audit.id, { domain_id: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "auditor",
-      label: "Auditeur",
-      render: (audit) => (
-        <EditableCell
-          value={audit.auditor || ""}
-          type="text"
-          onSave={async (value) => {
-            await update(audit.id, { auditor: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "planned_at",
-      label: "Date planifiée",
-      render: (audit) => (
-        <EditableCell
-          value={audit.planned_at || ""}
-          type="date"
-          onSave={async (value) => {
-            await update(audit.id, { planned_at: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "completed_at",
-      label: "Date réalisée",
-      render: (audit) => (
-        <EditableCell
-          value={audit.completed_at || ""}
-          type="date"
-          onSave={async (value) => {
-            await update(audit.id, { completed_at: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "status",
-      label: "Statut",
-      render: (audit) => (
-        <EditableCell
-          value={audit.status}
-          type="select"
-          options={STATUSES.map((s) => ({ value: s, label: s }))}
-          onSave={async (value) => {
-            const updates: any = { status: value };
-            if (value === "Réalisé" && !audit.completed_at) {
-              updates.completed_at = new Date().toISOString().split("T")[0];
-            }
-            await update(audit.id, updates);
-          }}
-        />
-      ),
-    },
-    {
-      key: "findings",
-      label: "Constats",
-      render: (audit) => (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-[var(--red)] font-semibold">{audit.major_findings}</span>
-          <span className="text-xs text-[var(--text-muted)]">/</span>
-          <span className="text-xs text-[var(--amb)] font-semibold">{audit.minor_findings}</span>
-          <span className="text-xs text-[var(--text-muted)]">/</span>
-          <span className="text-xs text-[var(--text-secondary)] font-semibold">{audit.observations}</span>
-        </div>
-      ),
-    },
-    {
-      key: "summary",
-      label: "Résumé",
-      render: (audit) => (
-        <EditableCell
-          value={audit.summary || ""}
-          type="text"
-          onSave={async (value) => {
-            await update(audit.id, { summary: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "actions",
-      label: "",
-      render: (audit) => (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => openFindingModal(audit.id)}
-            className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-            title="Ajouter un constat"
-          >
-            <ClipboardIcon size={14} />
-          </button>
-          <button
-            onClick={() => setDeleteId(audit.id)}
-            className="p-1.5 text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
-            title="Supprimer"
-          >
-            <TrashIcon size={14} />
-          </button>
-        </div>
-      ),
-    },
-  ];
-
+  /* ---- loading state --------------------------------------------- */
   if (loadingAudits || loadingDomains || loadingFindings) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-[var(--text-muted)]">Chargement...</p>
+        <p className="text-mut">Chargement...</p>
       </div>
     );
   }
 
+  /* ================================================================ */
+  /*  RENDER                                                          */
+  /* ================================================================ */
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
+      {/* ---- KPI Cards -------------------------------------------- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={<ClipboardIcon size={20} />}
@@ -486,21 +346,21 @@ export function TabAudits() {
         />
       </div>
 
-      {/* Timeline Chart */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">
+      {/* ---- Timeline Chart --------------------------------------- */}
+      <div className="bg-card border border-brd rounded-xl p-6">
+        <h3 className="text-sm font-semibold text-text mb-4">
           Programme annuel - Timeline audits par mois
         </h3>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={timelineData} layout="horizontal">
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="month" tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
-            <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--brd)" />
+            <XAxis dataKey="month" tick={{ fill: "var(--mut)", fontSize: 11 }} />
+            <YAxis tick={{ fill: "var(--mut)", fontSize: 11 }} />
             <Tooltip
               contentStyle={{
-                backgroundColor: "var(--card-bg)",
-                border: "1px solid var(--border)",
-                borderRadius: "4px",
+                backgroundColor: "var(--card)",
+                border: "1px solid var(--brd)",
+                borderRadius: "12px",
               }}
             />
             <Legend />
@@ -511,12 +371,12 @@ export function TabAudits() {
         </ResponsiveContainer>
       </div>
 
-      {/* Filters */}
+      {/* ---- Filters ---------------------------------------------- */}
       <div className="flex flex-wrap gap-3 items-center">
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className={filterCls}
         >
           <option value="all">Tous statuts</option>
           {STATUSES.map((s) => (
@@ -529,7 +389,7 @@ export function TabAudits() {
         <select
           value={filterDomain}
           onChange={(e) => setFilterDomain(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className={filterCls}
         >
           <option value="all">Tous domaines</option>
           {domains.map((d) => (
@@ -542,7 +402,7 @@ export function TabAudits() {
         <select
           value={filterAuditor}
           onChange={(e) => setFilterAuditor(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className={filterCls}
         >
           <option value="all">Tous auditeurs</option>
           {auditorList.map((auditor) => (
@@ -557,87 +417,125 @@ export function TabAudits() {
         </div>
       </div>
 
-      {/* Data Table with Expandable Findings */}
-      <div className="space-y-2">
-        {filteredAudits.map((audit) => (
-          <div key={audit.id} className="space-y-0">
-            {/* Main audit row - using custom row instead of DataTable for expandability */}
-            <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-3">
-              <div className="grid grid-cols-12 gap-3 items-center text-sm">
-                <div className="col-span-1 flex items-center">
-                  {findings.filter((f) => f.audit_id === audit.id).length > 0 && (
+      {/* ---- Audit Cards ------------------------------------------ */}
+      <div className="space-y-3">
+        {filteredAudits.length === 0 && (
+          <p className="text-center py-12 text-mut text-[15px]">Aucun audit trouvé.</p>
+        )}
+
+        {filteredAudits.map((audit) => {
+          const auditFindings = findings.filter((f) => f.audit_id === audit.id);
+          const isExpanded = expandedAudit === audit.id;
+
+          return (
+            <div key={audit.id} className="space-y-0">
+              {/* --- card ------------------------------------------ */}
+              <div className="bg-card border border-brd rounded-xl p-5 hover:border-accent/30 transition-colors">
+                {/* row 1: reference + type + actions */}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* expand toggle */}
+                    {auditFindings.length > 0 && (
+                      <button
+                        onClick={() => setExpandedAudit(isExpanded ? null : audit.id)}
+                        className="flex-shrink-0 p-1 text-mut hover:text-text transition-colors"
+                      >
+                        {isExpanded ? <ChevronDownIcon size={16} /> : <ChevronRightIcon size={16} />}
+                      </button>
+                    )}
+
+                    <span className="text-[14px] font-mono font-semibold text-accent truncate">
+                      {audit.reference}
+                    </span>
+                    <Badge variant="plan">{audit.type}</Badge>
+                  </div>
+
+                  {/* action buttons */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <button
-                      onClick={() => setExpandedAudit(expandedAudit === audit.id ? null : audit.id)}
-                      className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                      onClick={() => openFindingModal(audit.id)}
+                      className="p-2 text-mut hover:text-accent rounded-lg hover:bg-accent/10 transition-all"
+                      title="Ajouter un constat"
                     >
-                      {expandedAudit === audit.id ? <ChevronDownIcon size={14} /> : <ChevronRightIcon size={14} />}
+                      <ClipboardIcon size={15} />
                     </button>
-                  )}
+                    <button
+                      onClick={() => setDeleteId(audit.id)}
+                      className="p-2 text-mut hover:text-red rounded-lg hover:bg-red/10 transition-all"
+                      title="Supprimer"
+                    >
+                      <TrashIcon size={15} />
+                    </button>
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <span className="text-xs font-mono text-[var(--accent)]">{audit.reference}</span>
-                </div>
-                <div className="col-span-2">
-                  <Badge variant="plan">{audit.type}</Badge>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-xs text-[var(--text-secondary)]">
-                    {audit.domain_id ? domainMap[audit.domain_id] : "-"}
+
+                {/* row 2: domain + auditor + date */}
+                <div className="flex items-center gap-4 mt-2 text-[13px] text-sec">
+                  <span>{audit.domain_id ? domainMap[audit.domain_id] : "Aucun domaine"}</span>
+                  <span className="text-brd">|</span>
+                  <span>{audit.auditor || "Pas d'auditeur"}</span>
+                  <span className="text-brd">|</span>
+                  <span className="text-mut">
+                    {audit.planned_at
+                      ? new Date(audit.planned_at).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "Non planifié"}
                   </span>
                 </div>
-                <div className="col-span-2">
-                  <span className="text-xs text-[var(--text-secondary)]">{audit.auditor || "-"}</span>
-                </div>
-                <div className="col-span-2">
+
+                {/* row 3: status + findings count */}
+                <div className="flex items-center gap-4 mt-3">
                   <Badge variant={getStatusBadgeVariant(audit.status)}>{audit.status}</Badge>
-                </div>
-                <div className="col-span-1 flex justify-end gap-2">
-                  <button
-                    onClick={() => openFindingModal(audit.id)}
-                    className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-                    title="Ajouter un constat"
-                  >
-                    <ClipboardIcon size={14} />
-                  </button>
-                  <button
-                    onClick={() => setDeleteId(audit.id)}
-                    className="p-1.5 text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
-                    title="Supprimer"
-                  >
-                    <TrashIcon size={14} />
-                  </button>
+
+                  <div className="flex items-center gap-3 text-[12px]">
+                    <span className="text-red font-semibold">{audit.major_findings} maj.</span>
+                    <span className="text-amb font-semibold">{audit.minor_findings} min.</span>
+                    <span className="text-sec font-semibold">{audit.observations} obs.</span>
+                  </div>
+
+                  {auditFindings.length > 0 && (
+                    <span className="text-[12px] text-mut">
+                      ({auditFindings.length} constat{auditFindings.length > 1 ? "s" : ""} enregistré{auditFindings.length > 1 ? "s" : ""})
+                    </span>
+                  )}
+
+                  {audit.summary && (
+                    <span className="text-[12px] text-mut italic truncate ml-auto max-w-[300px]">
+                      {audit.summary}
+                    </span>
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* Expanded findings section */}
-            {expandedAudit === audit.id && (
-              <div className="ml-8 bg-[var(--elevation-bg)] border border-[var(--border)] rounded p-4">
-                <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">
-                  Constats de l'audit
-                </h4>
-                <div className="space-y-2">
-                  {findings
-                    .filter((f) => f.audit_id === audit.id)
-                    .map((finding) => (
+              {/* --- expanded findings ----------------------------- */}
+              {isExpanded && auditFindings.length > 0 && (
+                <div className="ml-6 mt-1 bg-elev border border-brd rounded-xl p-5">
+                  <h4 className="text-[12px] font-semibold text-sec uppercase tracking-wider mb-3">
+                    Constats de l'audit
+                  </h4>
+                  <div className="space-y-2">
+                    {auditFindings.map((finding) => (
                       <div
                         key={finding.id}
-                        className="flex items-start gap-3 p-3 bg-[var(--card-bg)] border border-[var(--border)] rounded"
+                        className="flex items-start gap-3 p-4 bg-card border border-brd rounded-xl"
                       >
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 pt-0.5">
                           <Badge variant={getFindingBadgeVariant(finding.type)}>{finding.type}</Badge>
                         </div>
-                        <div className="flex-1 space-y-1">
+                        <div className="flex-1 space-y-1 min-w-0">
                           {finding.clause_ref && (
-                            <span className="text-xs text-[var(--text-muted)] font-mono">
+                            <span className="text-[12px] text-mut font-mono">
                               Clause {finding.clause_ref}
                             </span>
                           )}
-                          <p className="text-sm text-[var(--text-primary)]">{finding.description}</p>
+                          <p className="text-[14px] text-text">{finding.description}</p>
                           {finding.capa_id && (
                             <a
                               href={`/dashboard/capa#capa-${finding.capa_id}`}
-                              className="text-xs text-[var(--accent)] hover:underline inline-flex items-center gap-1"
+                              className="text-[12px] text-accent hover:underline inline-flex items-center gap-1"
                             >
                               Lien CAPA {capas.find((c) => c.id === finding.capa_id)?.id.substring(0, 4).toUpperCase()}
                             </a>
@@ -645,25 +543,26 @@ export function TabAudits() {
                         </div>
                         <button
                           onClick={() => removeFinding(finding.id)}
-                          className="p-1 text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
+                          className="flex-shrink-0 p-1.5 text-mut hover:text-red rounded-lg hover:bg-red/10 transition-all"
                           title="Supprimer constat"
                         >
-                          <TrashIcon size={12} />
+                          <TrashIcon size={13} />
                         </button>
                       </div>
                     ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Charts Section */}
+      {/* ---- Charts Section --------------------------------------- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Findings by Type */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Constats par type</h3>
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">Constats par type</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
@@ -686,24 +585,24 @@ export function TabAudits() {
         </div>
 
         {/* Audits by Domain */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Audits par domaine</h3>
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">Audits par domaine</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={auditsByDomain}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--brd)" />
               <XAxis
                 dataKey="name"
-                tick={{ fill: "var(--text-muted)", fontSize: 11 }}
+                tick={{ fill: "var(--mut)", fontSize: 11 }}
                 angle={-15}
                 textAnchor="end"
                 height={80}
               />
-              <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
+              <YAxis tick={{ fill: "var(--mut)", fontSize: 11 }} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "var(--card-bg)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "4px",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--brd)",
+                  borderRadius: "12px",
                 }}
               />
               <Bar dataKey="value" fill={THEME_COLORS.primary} />
@@ -712,33 +611,31 @@ export function TabAudits() {
         </div>
       </div>
 
-      {/* Add Audit Modal */}
+      {/* ---- Add Audit Modal -------------------------------------- */}
       {showAddModal && (
         <Modal
           isOpen={showAddModal}
           title="Nouvel audit"
           onClose={() => setShowAddModal(false)}
         >
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
-                Référence *
-              </label>
+              <label className={labelCls}>Référence *</label>
               <input
                 type="text"
                 value={newAudit.reference}
                 onChange={(e) => setNewAudit({ ...newAudit, reference: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className={inputCls}
                 placeholder="AUD-2026-001"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Type</label>
+              <label className={labelCls}>Type</label>
               <select
                 value={newAudit.type}
                 onChange={(e) => setNewAudit({ ...newAudit, type: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className={inputCls}
               >
                 {AUDIT_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -749,11 +646,11 @@ export function TabAudits() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Domaine</label>
+              <label className={labelCls}>Domaine</label>
               <select
                 value={newAudit.domain_id || ""}
                 onChange={(e) => setNewAudit({ ...newAudit, domain_id: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className={inputCls}
               >
                 <option value="">Sélectionner un domaine</option>
                 {domains.map((d) => (
@@ -765,35 +662,33 @@ export function TabAudits() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Auditeur</label>
+              <label className={labelCls}>Auditeur</label>
               <input
                 type="text"
                 value={newAudit.auditor || ""}
                 onChange={(e) => setNewAudit({ ...newAudit, auditor: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className={inputCls}
                 placeholder="Nom de l'auditeur"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
-                  Date planifiée
-                </label>
+                <label className={labelCls}>Date planifiée</label>
                 <input
                   type="date"
                   value={newAudit.planned_at || ""}
                   onChange={(e) => setNewAudit({ ...newAudit, planned_at: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className={inputCls}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Statut</label>
+                <label className={labelCls}>Statut</label>
                 <select
                   value={newAudit.status}
                   onChange={(e) => setNewAudit({ ...newAudit, status: e.target.value as any })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className={inputCls}
                 >
                   {STATUSES.map((s) => (
                     <option key={s} value={s}>
@@ -805,27 +700,24 @@ export function TabAudits() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Résumé</label>
+              <label className={labelCls}>Résumé</label>
               <textarea
                 value={newAudit.summary || ""}
                 onChange={(e) => setNewAudit({ ...newAudit, summary: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)] resize-none"
+                className={`${inputCls} resize-none`}
                 placeholder="Résumé de l'audit..."
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-              >
+            <div className="flex justify-end gap-3 pt-2">
+              <button onClick={() => setShowAddModal(false)} className={btnCancel}>
                 Annuler
               </button>
               <button
                 onClick={handleAdd}
                 disabled={!newAudit.reference}
-                className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className={btnPrimary}
               >
                 Créer
               </button>
@@ -834,7 +726,7 @@ export function TabAudits() {
         </Modal>
       )}
 
-      {/* Add Finding Modal */}
+      {/* ---- Add Finding Modal ------------------------------------ */}
       {showFindingModal && selectedAuditForFinding && (
         <Modal
           isOpen={showFindingModal}
@@ -844,13 +736,13 @@ export function TabAudits() {
             setSelectedAuditForFinding(null);
           }}
         >
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Type</label>
+              <label className={labelCls}>Type</label>
               <select
                 value={newFinding.type}
                 onChange={(e) => setNewFinding({ ...newFinding, type: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className={inputCls}
               >
                 {FINDING_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -861,39 +753,33 @@ export function TabAudits() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
-                Clause ISO (optionnel)
-              </label>
+              <label className={labelCls}>Clause ISO (optionnel)</label>
               <input
                 type="text"
                 value={newFinding.clause_ref || ""}
                 onChange={(e) => setNewFinding({ ...newFinding, clause_ref: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className={inputCls}
                 placeholder="9.2.2"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
-                Description *
-              </label>
+              <label className={labelCls}>Description *</label>
               <textarea
                 value={newFinding.description}
                 onChange={(e) => setNewFinding({ ...newFinding, description: e.target.value })}
                 rows={4}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)] resize-none"
+                className={`${inputCls} resize-none`}
                 placeholder="Description détaillée du constat..."
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
-                Lien CAPA (optionnel)
-              </label>
+              <label className={labelCls}>Lien CAPA (optionnel)</label>
               <select
                 value={newFinding.capa_id || ""}
                 onChange={(e) => setNewFinding({ ...newFinding, capa_id: e.target.value || null })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className={inputCls}
               >
                 <option value="">Aucune CAPA</option>
                 {capas.map((c) => (
@@ -904,20 +790,20 @@ export function TabAudits() {
               </select>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => {
                   setShowFindingModal(false);
                   setSelectedAuditForFinding(null);
                 }}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className={btnCancel}
               >
                 Annuler
               </button>
               <button
                 onClick={handleAddFinding}
                 disabled={!newFinding.description}
-                className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className={btnPrimary}
               >
                 Ajouter
               </button>
@@ -926,7 +812,7 @@ export function TabAudits() {
         </Modal>
       )}
 
-      {/* Delete Confirmation */}
+      {/* ---- Delete Confirmation ---------------------------------- */}
       {deleteId && (
         <ConfirmDelete
           isOpen={!!deleteId}

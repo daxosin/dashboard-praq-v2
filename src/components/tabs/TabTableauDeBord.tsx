@@ -177,7 +177,7 @@ export const TabTableauDeBord: React.FC = () => {
     <div className="space-y-8">
       {/* Section Score SMQ + Breakdown */}
       <section>
-        <h2 className="text-[10px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
+        <h2 className="text-[12px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
           SCORE GLOBAL SMQ
         </h2>
         <div className="bg-card border border-brd rounded-md p-6">
@@ -191,50 +191,50 @@ export const TabTableauDeBord: React.FC = () => {
             {/* Breakdown 7 composantes */}
             <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="flex flex-col items-center">
-                <ScoreGauge score={(score.sops / 25) * 100} size={44} />
-                <div className="text-[9px] text-mut mt-1 text-center">
+                <ScoreGauge score={(score.sops / 25) * 100} size={56} />
+                <div className="text-[11px] text-mut mt-1 text-center">
                   SOPs (25%)
                 </div>
               </div>
               <div className="flex flex-col items-center">
-                <ScoreGauge score={(score.capa / 20) * 100} size={44} />
-                <div className="text-[9px] text-mut mt-1 text-center">
+                <ScoreGauge score={(score.capa / 20) * 100} size={56} />
+                <div className="text-[11px] text-mut mt-1 text-center">
                   CAPA (20%)
                 </div>
               </div>
               <div className="flex flex-col items-center">
                 <ScoreGauge
                   score={(score.habilitations / 15) * 100}
-                  size={44}
+                  size={56}
                 />
-                <div className="text-[9px] text-mut mt-1 text-center">
+                <div className="text-[11px] text-mut mt-1 text-center">
                   Habilit. (15%)
                 </div>
               </div>
               <div className="flex flex-col items-center">
-                <ScoreGauge score={(score.equipements / 15) * 100} size={44} />
-                <div className="text-[9px] text-mut mt-1 text-center">
+                <ScoreGauge score={(score.equipements / 15) * 100} size={56} />
+                <div className="text-[11px] text-mut mt-1 text-center">
                   Équip. (15%)
                 </div>
               </div>
               <div className="flex flex-col items-center">
-                <ScoreGauge score={(score.audits / 10) * 100} size={44} />
-                <div className="text-[9px] text-mut mt-1 text-center">
+                <ScoreGauge score={(score.audits / 10) * 100} size={56} />
+                <div className="text-[11px] text-mut mt-1 text-center">
                   Audits (10%)
                 </div>
               </div>
               <div className="flex flex-col items-center">
                 <ScoreGauge
                   score={(score.reclamations / 10) * 100}
-                  size={44}
+                  size={56}
                 />
-                <div className="text-[9px] text-mut mt-1 text-center">
+                <div className="text-[11px] text-mut mt-1 text-center">
                   Réclam. (10%)
                 </div>
               </div>
               <div className="flex flex-col items-center">
-                <ScoreGauge score={(score.risques / 5) * 100} size={44} />
-                <div className="text-[9px] text-mut mt-1 text-center">
+                <ScoreGauge score={(score.risques / 5) * 100} size={56} />
+                <div className="text-[11px] text-mut mt-1 text-center">
                   Risques (5%)
                 </div>
               </div>
@@ -245,44 +245,44 @@ export const TabTableauDeBord: React.FC = () => {
 
       {/* Section 6 KPI Cards */}
       <section>
-        <h2 className="text-[10px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
+        <h2 className="text-[12px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
           INDICATEURS CLÉS
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <KpiCard
-            icon={<DocIcon size={16} />}
+            icon={<DocIcon size={20} />}
             label="SOPs validées"
             value={`${sopsValides}/${sops.length}`}
             subtitle={`${sopsEnCours} en cours - ${sopsPlanifiees} planifiées`}
           />
           <KpiCard
-            icon={<ZapIcon size={16} />}
+            icon={<ZapIcon size={20} />}
             label="CAPA ouvertes"
             value={capasOuvertes}
             subtitle={`${capasEnRetard} en retard`}
             accent={capasEnRetard > 0 ? "amber" : "default"}
           />
           <KpiCard
-            icon={<UsersIcon size={16} />}
+            icon={<UsersIcon size={20} />}
             label="Habilitations"
             value={`${habilitationsPct}%`}
             subtitle={`${habilitationsExpiring} expirent sous 30j`}
           />
           <KpiCard
-            icon={<ToolIcon size={16} />}
+            icon={<ToolIcon size={20} />}
             label="Équipements conformes"
             value={`${equipementsPct}%`}
             subtitle={`${maintenanceDue} maintenance due`}
             accent={maintenanceDue > 0 ? "amber" : "default"}
           />
           <KpiCard
-            icon={<SearchIcon size={16} />}
+            icon={<SearchIcon size={20} />}
             label="Audits réalisés"
             value={`${auditsRealises}/${auditsPlanifies}`}
             subtitle={`Taux réalisation ${auditsTaux}%`}
           />
           <KpiCard
-            icon={<MsgIcon size={16} />}
+            icon={<MsgIcon size={20} />}
             label="Réclamations ouvertes"
             value={reclamationsOuvertes}
             subtitle={`${reclamationsPlus48h} > 48h`}
@@ -293,7 +293,7 @@ export const TabTableauDeBord: React.FC = () => {
 
       {/* Section Alertes actives */}
       <section>
-        <h2 className="text-[10px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
+        <h2 className="text-[12px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
           ALERTES ACTIVES
         </h2>
         <div className="space-y-2">
@@ -318,27 +318,46 @@ export const TabTableauDeBord: React.FC = () => {
 
       {/* Section Matrice santé 16 processus */}
       <section>
-        <h2 className="text-[10px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
+        <h2 className="text-[12px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
           SANTÉ PAR PROCESSUS
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {domains.slice(0, 16).map((domain) => {
             const health = getDomaineHealth(domain.id);
+            const barColor =
+              health === "ok"
+                ? "bg-green-500"
+                : health === "wip"
+                ? "bg-amber-500"
+                : health === "crit"
+                ? "bg-red-500"
+                : "bg-gray-400";
             return (
               <div
                 key={domain.id}
-                className="bg-card border border-brd rounded-md p-3 flex flex-col items-center justify-center gap-2"
+                className="bg-card border border-brd rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden"
               >
-                <div className="text-[11px] text-center text-sec font-medium leading-tight">
-                  {domain.name}
+                {/* Colored indicator bar at top */}
+                <div
+                  className={`absolute top-0 left-0 right-0 h-[3px] ${barColor}`}
+                />
+                <div>
+                  <div className="text-[14px] font-semibold text-text leading-tight">
+                    {domain.name}
+                  </div>
+                  <div className="text-[11px] text-mut mt-1">
+                    {domain.process_type}
+                  </div>
                 </div>
-                <Badge variant={health}>
-                  {health === "ok"
-                    ? "Conforme"
-                    : health === "wip"
-                    ? "Attention"
-                    : "Action"}
-                </Badge>
+                <div className="mb-1">
+                  <Badge variant={health}>
+                    {health === "ok"
+                      ? "Conforme"
+                      : health === "wip"
+                      ? "Attention"
+                      : "Action"}
+                  </Badge>
+                </div>
               </div>
             );
           })}
@@ -347,7 +366,7 @@ export const TabTableauDeBord: React.FC = () => {
 
       {/* Section Graphique tendance */}
       <section>
-        <h2 className="text-[10px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
+        <h2 className="text-[12px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
           TENDANCE SCORE SMQ
         </h2>
         <div className="bg-card border border-brd rounded-md p-6">

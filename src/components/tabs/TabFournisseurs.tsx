@@ -371,7 +371,7 @@ export function TabFournisseurs() {
       render: (supplier) => (
         <button
           onClick={() => setDeleteSupplierId(supplier.id)}
-          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
+          className="p-1.5 text-mut hover:text-red transition-colors"
           title="Supprimer"
         >
           <TrashIcon size={14} />
@@ -443,12 +443,12 @@ export function TabFournisseurs() {
           {event.capa_id ? (
             <a
               href={`/dashboard/capa#capa-${event.capa_id}`}
-              className="text-xs font-mono text-[var(--accent)] hover:underline"
+              className="text-xs font-mono text-accent hover:underline"
             >
               CAPA-{event.capa_id.substring(0, 4).toUpperCase()}
             </a>
           ) : (
-            <span className="text-xs text-[var(--text-muted)]">Aucun</span>
+            <span className="text-xs text-mut">Aucun</span>
           )}
         </div>
       ),
@@ -459,7 +459,7 @@ export function TabFournisseurs() {
       render: (event) => (
         <button
           onClick={() => setDeleteEventId(event.id)}
-          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
+          className="p-1.5 text-mut hover:text-red transition-colors"
           title="Supprimer"
         >
           <TrashIcon size={14} />
@@ -471,7 +471,7 @@ export function TabFournisseurs() {
   if (loadingSuppliers || loadingEvents) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-[var(--text-muted)]">Chargement...</p>
+        <p className="text-mut">Chargement...</p>
       </div>
     );
   }
@@ -514,7 +514,7 @@ export function TabFournisseurs() {
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
         >
           <option value="all">Tous types</option>
           {SUPPLIER_TYPES.map((t) => (
@@ -527,7 +527,7 @@ export function TabFournisseurs() {
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
         >
           <option value="all">Toutes catégories</option>
           {categories.map((c) => (
@@ -538,30 +538,30 @@ export function TabFournisseurs() {
         </select>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[var(--text-secondary)]">Score:</span>
+          <span className="text-xs text-sec">Score:</span>
           <input
             type="number"
             min="0"
             max="100"
             value={filterScoreMin}
             onChange={(e) => setFilterScoreMin(parseInt(e.target.value) || 0)}
-            className="w-16 px-2 py-1 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+            className="w-16 px-2 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text"
           />
-          <span className="text-xs text-[var(--text-secondary)]">-</span>
+          <span className="text-xs text-sec">-</span>
           <input
             type="number"
             min="0"
             max="100"
             value={filterScoreMax}
             onChange={(e) => setFilterScoreMax(parseInt(e.target.value) || 100)}
-            className="w-16 px-2 py-1 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+            className="w-16 px-2 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text"
           />
         </div>
 
         <select
           value={filterRgpd}
           onChange={(e) => setFilterRgpd(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
         >
           <option value="all">RGPD: Tous</option>
           <option value="true">RGPD: Oui</option>
@@ -571,7 +571,7 @@ export function TabFournisseurs() {
         <select
           value={filterHds}
           onChange={(e) => setFilterHds(e.target.value)}
-          className="px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+          className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
         >
           <option value="all">HDS: Tous</option>
           <option value="true">HDS: Oui</option>
@@ -585,15 +585,15 @@ export function TabFournisseurs() {
 
       {/* Suppliers Data Table */}
       <div>
-        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">Registre fournisseurs</h2>
+        <h2 className="text-lg font-semibold text-text mb-3">Registre fournisseurs</h2>
         <DataTable columns={supplierColumns} data={filteredSuppliers} />
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Scores by Supplier */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">
             Scores par fournisseur (Top 10)
           </h3>
           <ResponsiveContainer width="100%" height={280}>
@@ -623,8 +623,8 @@ export function TabFournisseurs() {
         </div>
 
         {/* Suppliers by Type */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Fournisseurs par type</h3>
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">Fournisseurs par type</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
@@ -647,8 +647,8 @@ export function TabFournisseurs() {
         </div>
 
         {/* RGPD Compliance */}
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-4">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Conformité RGPD</h3>
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">Conformité RGPD</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
@@ -673,7 +673,7 @@ export function TabFournisseurs() {
       {/* Supplier Events Section */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Incidents fournisseurs</h2>
+          <h2 className="text-lg font-semibold text-text">Incidents fournisseurs</h2>
           <AddButton onClick={() => setShowAddEventModal(true)} />
         </div>
         <DataTable columns={eventColumns} data={supplierEvents} />
@@ -688,22 +688,22 @@ export function TabFournisseurs() {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Nom *</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Nom *</label>
               <input
                 type="text"
                 value={newSupplier.name}
                 onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Nom du fournisseur"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Type</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Type</label>
               <select
                 value={newSupplier.type}
                 onChange={(e) => setNewSupplier({ ...newSupplier, type: e.target.value as any })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 {SUPPLIER_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -714,36 +714,36 @@ export function TabFournisseurs() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Catégorie</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Catégorie</label>
               <input
                 type="text"
                 value={newSupplier.category || ""}
                 onChange={(e) => setNewSupplier({ ...newSupplier, category: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Médicaments, Dispositifs médicaux, Services..."
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Contrat</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Contrat</label>
               <input
                 type="text"
                 value={newSupplier.contract || ""}
                 onChange={(e) => setNewSupplier({ ...newSupplier, contract: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Référence du contrat"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Clause RGPD
                 </label>
                 <select
                   value={newSupplier.rgpd_clause?.toString() || "false"}
                   onChange={(e) => setNewSupplier({ ...newSupplier, rgpd_clause: e.target.value === "true" })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
                   {BOOLEAN_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -754,13 +754,13 @@ export function TabFournisseurs() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-[13px] font-semibold text-sec mb-2">
                   Conformité HDS
                 </label>
                 <select
                   value={newSupplier.hds_compliant?.toString() || "false"}
                   onChange={(e) => setNewSupplier({ ...newSupplier, hds_compliant: e.target.value === "true" })}
-                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
                   {BOOLEAN_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -774,14 +774,14 @@ export function TabFournisseurs() {
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={() => setShowAddSupplierModal(false)}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
               >
                 Annuler
               </button>
               <button
                 onClick={handleAddSupplier}
                 disabled={!newSupplier.name}
-                className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
               </button>
@@ -799,13 +799,13 @@ export function TabFournisseurs() {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Fournisseur *
               </label>
               <select
                 value={newEvent.supplier_id}
                 onChange={(e) => setNewEvent({ ...newEvent, supplier_id: e.target.value })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 <option value="">Sélectionner un fournisseur</option>
                 {suppliers.map((s) => (
@@ -817,11 +817,11 @@ export function TabFournisseurs() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Type</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Type</label>
               <select
                 value={newEvent.type}
                 onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as any })}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 {EVENT_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -832,25 +832,25 @@ export function TabFournisseurs() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Description *
               </label>
               <textarea
                 value={newEvent.description}
                 onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                 rows={4}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)] resize-none"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                 placeholder="Description de l'incident..."
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Action</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Action</label>
               <textarea
                 value={newEvent.action || ""}
                 onChange={(e) => setNewEvent({ ...newEvent, action: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded text-sm text-[var(--text-primary)] resize-none"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
                 placeholder="Action prise ou planifiée..."
               />
             </div>
@@ -858,14 +858,14 @@ export function TabFournisseurs() {
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={() => setShowAddEventModal(false)}
-                className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
               >
                 Annuler
               </button>
               <button
                 onClick={handleAddEvent}
                 disabled={!newEvent.supplier_id || !newEvent.description}
-                className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
               </button>

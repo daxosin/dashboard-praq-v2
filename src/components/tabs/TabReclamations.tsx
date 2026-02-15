@@ -416,7 +416,7 @@ export function TabReclamations() {
               onChange={(e) =>
                 setFilters({ ...filters, source: e.target.value })
               }
-              className="w-full bg-card border border-border rounded px-3 py-2 text-text"
+              className="w-full px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
             >
               <option value="">Toutes</option>
               <option value="EHPAD">EHPAD</option>
@@ -434,7 +434,7 @@ export function TabReclamations() {
                 setFilters({ ...filters, ehpad_name: e.target.value })
               }
               placeholder="Rechercher..."
-              className="w-full bg-card border border-border rounded px-3 py-2 text-text"
+              className="w-full px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
             />
           </div>
           <div>
@@ -444,7 +444,7 @@ export function TabReclamations() {
               onChange={(e) =>
                 setFilters({ ...filters, category: e.target.value })
               }
-              className="w-full bg-card border border-border rounded px-3 py-2 text-text"
+              className="w-full px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
             >
               <option value="">Toutes</option>
               <option value="Erreur dispensation">Erreur dispensation</option>
@@ -461,7 +461,7 @@ export function TabReclamations() {
               onChange={(e) =>
                 setFilters({ ...filters, status: e.target.value })
               }
-              className="w-full bg-card border border-border rounded px-3 py-2 text-text"
+              className="w-full px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
             >
               <option value="">Tous</option>
               <option value="Ouverte">Ouverte</option>
@@ -476,7 +476,7 @@ export function TabReclamations() {
               onChange={(e) =>
                 setFilters({ ...filters, severity: e.target.value })
               }
-              className="w-full bg-card border border-border rounded px-3 py-2 text-text"
+              className="w-full px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
             >
               <option value="">Toutes</option>
               <option value="Faible">Faible</option>
@@ -507,7 +507,7 @@ export function TabReclamations() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-brd">
                 <th className="text-tag text-left py-2">EHPAD</th>
                 <th className="text-tag text-left py-2">Réclamations</th>
                 <th className="text-tag text-left py-2">Délai moyen</th>
@@ -516,7 +516,7 @@ export function TabReclamations() {
             </thead>
             <tbody>
               {ehpadSummary.map((row, idx) => (
-                <tr key={idx} className="border-b border-border hover:bg-elevation">
+                <tr key={idx} className="border-b border-brd hover:bg-elev">
                   <td className="py-2 text-text">{row.ehpad}</td>
                   <td className="py-2 text-text">{row.count}</td>
                   <td className="py-2 text-text">{row.avgDelay} jours</td>

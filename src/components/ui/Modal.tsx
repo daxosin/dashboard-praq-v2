@@ -50,7 +50,7 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" />
       <div
-        className={`relative bg-card border border-brd rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col ${className}`}
+        className={`relative bg-card border border-brd rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (

@@ -157,7 +157,7 @@ export function TabIndicateurs() {
       key: "label",
       label: "Indicateur",
       render: (row) => (
-        <span className="font-medium text-[var(--text)]">{row.label}</span>
+        <span className="font-medium text-text">{row.label}</span>
       ),
     },
     ...last12Months.map((month) => ({
@@ -196,14 +196,14 @@ export function TabIndicateurs() {
       key: "label",
       label: "Indicateur",
       render: (row) => (
-        <span className="font-medium text-[var(--text)]">{row.label}</span>
+        <span className="font-medium text-text">{row.label}</span>
       ),
     },
     {
       key: "currentValue",
       label: "Valeur actuelle",
       render: (row) => (
-        <span className="text-[var(--text)]">
+        <span className="text-text">
           {row.currentValue !== undefined
             ? `${row.currentValue.toFixed(2)} ${row.unit}`
             : "-"}
@@ -214,7 +214,7 @@ export function TabIndicateurs() {
       key: "target",
       label: "Objectif",
       render: (row) => (
-        <span className="text-[var(--muted)]">
+        <span className="text-mut">
           {row.target} {row.unit}
         </span>
       ),
@@ -231,7 +231,7 @@ export function TabIndicateurs() {
         return (
           <span
             className={
-              isGood ? "text-[var(--success)]" : "text-[var(--danger)]"
+              isGood ? "text-grn" : "text-red"
             }
           >
             {ecart > 0 ? "+" : ""}
@@ -251,7 +251,7 @@ export function TabIndicateurs() {
             ? "↘ Baisse"
             : "→ Stable";
         return (
-          <span className="text-[var(--text-secondary)]">{trendLabel}</span>
+          <span className="text-sec">{trendLabel}</span>
         );
       },
     },
@@ -295,7 +295,7 @@ export function TabIndicateurs() {
   if (loadingIndicators || loadingValues) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-[var(--muted)]">Chargement...</p>
+        <p className="text-mut">Chargement...</p>
       </div>
     );
   }
@@ -333,17 +333,17 @@ export function TabIndicateurs() {
           return (
             <div
               key={ind.id}
-              className="p-4 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--elevated)] transition-colors duration-200"
+              className="bg-card border border-brd rounded-xl p-6 hover:bg-elev transition-colors duration-200"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-[1.8px] text-[var(--muted)] mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[1.8px] text-mut mb-2">
                 {ind.label}
               </p>
-              <p className="text-[24px] font-bold text-[var(--text)] mb-1">
+              <p className="text-[24px] font-bold text-text mb-1">
                 {ind.currentValue !== undefined
                   ? `${ind.currentValue.toFixed(2)} ${ind.unit}`
                   : "-"}
               </p>
-              <p className="text-[11px] text-[var(--text-secondary)] mb-2">
+              <p className="text-[11px] text-sec mb-2">
                 Objectif: {ind.target} {ind.unit} ({ind.direction === "up" ? "↑" : "↓"})
               </p>
               <Badge variant={ind.meetsTarget ? "ok" : "crit"}>
@@ -372,7 +372,7 @@ export function TabIndicateurs() {
       {/* Filtres */}
       <div className="flex gap-4 flex-wrap">
         <select
-          className="px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded text-[14px] text-[var(--text)]"
+          className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           value={selectedIndicator || ""}
           onChange={(e) => setSelectedIndicator(e.target.value || null)}
         >
@@ -387,7 +387,7 @@ export function TabIndicateurs() {
 
       {/* Saisie mensuelle */}
       <div>
-        <h3 className="text-[18px] font-semibold text-[var(--text)] mb-3">
+        <h3 className="text-[18px] font-semibold text-text mb-3">
           Saisie mensuelle
         </h3>
         <div className="overflow-x-auto">
@@ -400,7 +400,7 @@ export function TabIndicateurs() {
 
       {/* Graphiques tendance */}
       <div>
-        <h3 className="text-[18px] font-semibold text-[var(--text)] mb-3">
+        <h3 className="text-[18px] font-semibold text-text mb-3">
           Graphiques de tendance
         </h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -421,9 +421,9 @@ export function TabIndicateurs() {
             return (
               <div
                 key={ind.id}
-                className="p-4 rounded-lg bg-[var(--card)] border border-[var(--border)]"
+                className="bg-card border border-brd rounded-xl p-6"
               >
-                <h4 className="text-[14px] font-semibold text-[var(--text)] mb-3">
+                <h4 className="text-[14px] font-semibold text-text mb-3">
                   {ind.label}
                 </h4>
                 {hasData ? (
@@ -479,7 +479,7 @@ export function TabIndicateurs() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-[200px]">
-                    <p className="text-[var(--muted)] text-[12px]">
+                    <p className="text-mut text-[12px]">
                       Aucune donnée disponible
                     </p>
                   </div>
@@ -492,7 +492,7 @@ export function TabIndicateurs() {
 
       {/* Vue tableau récapitulative */}
       <div>
-        <h3 className="text-[18px] font-semibold text-[var(--text)] mb-3">
+        <h3 className="text-[18px] font-semibold text-text mb-3">
           Vue récapitulative
         </h3>
         <DataTable
@@ -516,12 +516,12 @@ export function TabIndicateurs() {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Libellé
               </label>
               <input
                 type="text"
-                className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded text-[14px] text-[var(--text)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 value={newIndicator.label}
                 onChange={(e) =>
                   setNewIndicator({ ...newIndicator, label: e.target.value })
@@ -529,13 +529,13 @@ export function TabIndicateurs() {
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Objectif
               </label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded text-[14px] text-[var(--text)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 value={newIndicator.target}
                 onChange={(e) =>
                   setNewIndicator({
@@ -546,12 +546,12 @@ export function TabIndicateurs() {
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Unité
               </label>
               <input
                 type="text"
-                className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded text-[14px] text-[var(--text)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 value={newIndicator.unit}
                 onChange={(e) =>
                   setNewIndicator({ ...newIndicator, unit: e.target.value })
@@ -559,11 +559,11 @@ export function TabIndicateurs() {
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Direction
               </label>
               <select
-                className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded text-[14px] text-[var(--text)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 value={newIndicator.direction}
                 onChange={(e) =>
                   setNewIndicator({
@@ -577,12 +577,12 @@ export function TabIndicateurs() {
               </select>
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Source (optionnel)
               </label>
               <input
                 type="text"
-                className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded text-[14px] text-[var(--text)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 value={newIndicator.source_tab || ""}
                 onChange={(e) =>
                   setNewIndicator({
@@ -594,13 +594,13 @@ export function TabIndicateurs() {
             </div>
             <div className="flex gap-3 justify-end">
               <button
-                className="px-4 py-2 rounded bg-[var(--card)] border border-[var(--border)] text-[14px] text-[var(--text)] hover:bg-[var(--elevated)]"
+                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
                 onClick={() => setShowAddModal(false)}
               >
                 Annuler
               </button>
               <button
-                className="px-4 py-2 rounded bg-[var(--accent)] text-[var(--card)] text-[14px] font-semibold hover:opacity-90"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90"
                 onClick={handleAddIndicator}
               >
                 Créer
@@ -615,11 +615,11 @@ export function TabIndicateurs() {
         <Modal isOpen={showValueModal} title="Saisir valeur" onClose={() => setShowValueModal(false)}>
           <div className="space-y-4">
             <div>
-              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Indicateur
               </label>
               <select
-                className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded text-[14px] text-[var(--text)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 value={newValue.indicator_id}
                 onChange={(e) =>
                   setNewValue({ ...newValue, indicator_id: e.target.value })
@@ -634,13 +634,13 @@ export function TabIndicateurs() {
               </select>
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Période (YYYY-MM)
               </label>
               <input
                 type="text"
                 placeholder="2026-02"
-                className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded text-[14px] text-[var(--text)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 value={newValue.period}
                 onChange={(e) =>
                   setNewValue({ ...newValue, period: e.target.value })
@@ -648,13 +648,13 @@ export function TabIndicateurs() {
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1">
+              <label className="block text-[13px] font-semibold text-sec mb-2">
                 Valeur
               </label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded text-[14px] text-[var(--text)]"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 value={newValue.value}
                 onChange={(e) =>
                   setNewValue({ ...newValue, value: Number(e.target.value) })
@@ -663,13 +663,13 @@ export function TabIndicateurs() {
             </div>
             <div className="flex gap-3 justify-end">
               <button
-                className="px-4 py-2 rounded bg-[var(--card)] border border-[var(--border)] text-[14px] text-[var(--text)] hover:bg-[var(--elevated)]"
+                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
                 onClick={() => setShowValueModal(false)}
               >
                 Annuler
               </button>
               <button
-                className="px-4 py-2 rounded bg-[var(--accent)] text-[var(--card)] text-[14px] font-semibold hover:opacity-90"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90"
                 onClick={handleAddValue}
               >
                 Ajouter

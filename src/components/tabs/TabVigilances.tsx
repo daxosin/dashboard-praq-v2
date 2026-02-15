@@ -106,7 +106,7 @@ export default function TabVigilances() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [vigilances]);
 
-  const COLORS = ["var(--color-accent)", "var(--color-text-secondary)", "var(--color-border)", "var(--color-muted)"];
+  const COLORS = ["var(--accent)", "var(--text-secondary)", "var(--border)", "var(--text-muted)"];
 
   // Vigilance columns
   const vigilanceColumns: ColumnDef<VigilanceWithDomain>[] = [
@@ -207,11 +207,11 @@ export default function TabVigilances() {
       label: "CAPA",
       render: (row) =>
         row.capa_id ? (
-          <Link href="/dashboard/capa" className="text-xs" style={{ color: "var(--color-accent)" }}>
+          <Link href="/dashboard/capa" className="text-xs text-accent">
             Voir CAPA
           </Link>
         ) : (
-          <span className="text-xs" style={{ color: "var(--color-muted)" }}>
+          <span className="text-xs text-mut">
             -
           </span>
         ),
@@ -222,8 +222,7 @@ export default function TabVigilances() {
       render: (row) => (
         <button
           onClick={() => setDeleteVigilanceId(row.id)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ color: "var(--color-red)" }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-red"
         >
           <TrashIcon size={14} />
         </button>
@@ -306,8 +305,7 @@ export default function TabVigilances() {
       render: (row) => (
         <button
           onClick={() => setDeleteRecallId(row.id)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ color: "var(--color-red)" }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-red"
         >
           <TrashIcon size={14} />
         </button>
@@ -420,18 +418,13 @@ export default function TabVigilances() {
       {/* Filters */}
       <div className="mb-6 flex flex-wrap gap-4">
         <div>
-          <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+          <label className="block text-[13px] font-semibold text-sec mb-2">
             Type
           </label>
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 rounded text-sm border"
-            style={{
-              backgroundColor: "var(--color-card)",
-              color: "var(--color-text)",
-              borderColor: "var(--color-border)",
-            }}
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Tous</option>
             {VIGILANCE_TYPES.map((type) => (
@@ -443,18 +436,13 @@ export default function TabVigilances() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+          <label className="block text-[13px] font-semibold text-sec mb-2">
             Gravité
           </label>
           <select
             value={filterSeverity}
             onChange={(e) => setFilterSeverity(e.target.value)}
-            className="px-3 py-2 rounded text-sm border"
-            style={{
-              backgroundColor: "var(--color-card)",
-              color: "var(--color-text)",
-              borderColor: "var(--color-border)",
-            }}
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Toutes</option>
             {SEVERITY_OPTIONS.map((severity) => (
@@ -466,18 +454,13 @@ export default function TabVigilances() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+          <label className="block text-[13px] font-semibold text-sec mb-2">
             Statut
           </label>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 rounded text-sm border"
-            style={{
-              backgroundColor: "var(--color-card)",
-              color: "var(--color-text)",
-              borderColor: "var(--color-border)",
-            }}
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Tous</option>
             {STATUS_OPTIONS.map((status) => (
@@ -489,18 +472,13 @@ export default function TabVigilances() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+          <label className="block text-[13px] font-semibold text-sec mb-2">
             Déclaré ANSM
           </label>
           <select
             value={filterDeclaredAnsm}
             onChange={(e) => setFilterDeclaredAnsm(e.target.value)}
-            className="px-3 py-2 rounded text-sm border"
-            style={{
-              backgroundColor: "var(--color-card)",
-              color: "var(--color-text)",
-              borderColor: "var(--color-border)",
-            }}
+            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Tous</option>
             <option value="yes">Oui</option>
@@ -512,7 +490,7 @@ export default function TabVigilances() {
       {/* Vigilances Table */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold" style={{ color: "var(--color-text)" }}>
+          <h2 className="text-lg font-semibold text-text">
             Signalements de vigilance
           </h2>
           <AddButton onClick={() => setShowVigilanceModal(true)} label="Nouveau signalement" />
@@ -523,7 +501,7 @@ export default function TabVigilances() {
       {/* Recalls Table */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold" style={{ color: "var(--color-text)" }}>
+          <h2 className="text-lg font-semibold text-text">
             Retraits et Rappels
           </h2>
           <AddButton onClick={() => setShowRecallModal(true)} label="Nouveau rappel" />
@@ -533,8 +511,8 @@ export default function TabVigilances() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="p-6 rounded-lg border" style={{ backgroundColor: "var(--color-card)", borderColor: "var(--color-border)" }}>
-          <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--color-text)" }}>
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">
             Répartition par type
           </h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -544,22 +522,22 @@ export default function TabVigilances() {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ backgroundColor: "var(--color-card)", borderColor: "var(--color-border)" }} />
+              <Tooltip contentStyle={{ backgroundColor: "var(--card-bg)", borderColor: "var(--border)" }} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="p-6 rounded-lg border" style={{ backgroundColor: "var(--color-card)", borderColor: "var(--color-border)" }}>
-          <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--color-text)" }}>
+        <div className="bg-card border border-brd rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-text mb-4">
             Répartition par gravité
           </h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={severityChartData}>
-              <XAxis dataKey="name" stroke="var(--color-text-secondary)" />
-              <YAxis stroke="var(--color-text-secondary)" />
-              <Tooltip contentStyle={{ backgroundColor: "var(--color-card)", borderColor: "var(--color-border)" }} />
-              <Bar dataKey="value" fill="var(--color-accent)" />
+              <XAxis dataKey="name" stroke="var(--text-secondary)" />
+              <YAxis stroke="var(--text-secondary)" />
+              <Tooltip contentStyle={{ backgroundColor: "var(--card-bg)", borderColor: "var(--border)" }} />
+              <Bar dataKey="value" fill="var(--accent)" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -567,20 +545,15 @@ export default function TabVigilances() {
 
       {/* Vigilance Modal */}
       <Modal isOpen={showVigilanceModal} onClose={() => setShowVigilanceModal(false)} title="Nouveau signalement de vigilance">
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Type
             </label>
             <select
               value={newVigilance.type}
               onChange={(e) => setNewVigilance({ ...newVigilance, type: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               {VIGILANCE_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -591,52 +564,37 @@ export default function TabVigilances() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Produit
             </label>
             <input
               type="text"
               value={newVigilance.product}
               onChange={(e) => setNewVigilance({ ...newVigilance, product: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Lot
             </label>
             <input
               type="text"
               value={newVigilance.lot}
               onChange={(e) => setNewVigilance({ ...newVigilance, lot: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Gravité
             </label>
             <select
               value={newVigilance.severity}
               onChange={(e) => setNewVigilance({ ...newVigilance, severity: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               {SEVERITY_OPTIONS.map((severity) => (
                 <option key={severity} value={severity}>
@@ -647,18 +605,13 @@ export default function TabVigilances() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Déclaré ANSM
             </label>
             <select
               value={newVigilance.declared_ansm ? "Oui" : "Non"}
               onChange={(e) => setNewVigilance({ ...newVigilance, declared_ansm: e.target.value === "Oui" })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               <option value="Non">Non</option>
               <option value="Oui">Oui</option>
@@ -666,35 +619,25 @@ export default function TabVigilances() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Référence ANSM
             </label>
             <input
               type="text"
               value={newVigilance.ansm_ref}
               onChange={(e) => setNewVigilance({ ...newVigilance, ansm_ref: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Mesures prises
             </label>
             <textarea
               value={newVigilance.measures}
               onChange={(e) => setNewVigilance({ ...newVigilance, measures: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
               rows={3}
             />
           </div>
@@ -702,21 +645,13 @@ export default function TabVigilances() {
           <div className="flex gap-3 justify-end pt-4">
             <button
               onClick={() => setShowVigilanceModal(false)}
-              className="px-4 py-2 rounded text-sm"
-              style={{
-                backgroundColor: "var(--color-elevation)",
-                color: "var(--color-text)",
-              }}
+              className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
             >
               Annuler
             </button>
             <button
               onClick={handleCreateVigilance}
-              className="px-4 py-2 rounded text-sm font-semibold"
-              style={{
-                backgroundColor: "var(--color-accent)",
-                color: "var(--color-bg)",
-              }}
+              className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity"
             >
               Créer
             </button>
@@ -726,105 +661,75 @@ export default function TabVigilances() {
 
       {/* Recall Modal */}
       <Modal isOpen={showRecallModal} onClose={() => setShowRecallModal(false)} title="Nouveau retrait/rappel">
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Source
             </label>
             <input
               type="text"
               value={newRecall.source}
               onChange={(e) => setNewRecall({ ...newRecall, source: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Produit
             </label>
             <input
               type="text"
               value={newRecall.product}
               onChange={(e) => setNewRecall({ ...newRecall, product: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Lots
             </label>
             <input
               type="text"
               value={newRecall.lots}
               onChange={(e) => setNewRecall({ ...newRecall, lots: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Action
             </label>
             <input
               type="text"
               value={newRecall.action}
               onChange={(e) => setNewRecall({ ...newRecall, action: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Quantité
             </label>
             <input
               type="text"
               value={newRecall.quantity}
               onChange={(e) => setNewRecall({ ...newRecall, quantity: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--color-text-secondary)", letterSpacing: "1.8px" }}>
+            <label className="block text-[13px] font-semibold text-sec mb-2">
               Statut
             </label>
             <select
               value={newRecall.status}
               onChange={(e) => setNewRecall({ ...newRecall, status: e.target.value })}
-              className="w-full px-3 py-2 rounded text-sm border"
-              style={{
-                backgroundColor: "var(--color-card)",
-                color: "var(--color-text)",
-                borderColor: "var(--color-border)",
-              }}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               {RECALL_STATUS_OPTIONS.map((status) => (
                 <option key={status} value={status}>
@@ -837,21 +742,13 @@ export default function TabVigilances() {
           <div className="flex gap-3 justify-end pt-4">
             <button
               onClick={() => setShowRecallModal(false)}
-              className="px-4 py-2 rounded text-sm"
-              style={{
-                backgroundColor: "var(--color-elevation)",
-                color: "var(--color-text)",
-              }}
+              className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
             >
               Annuler
             </button>
             <button
               onClick={handleCreateRecall}
-              className="px-4 py-2 rounded text-sm font-semibold"
-              style={{
-                backgroundColor: "var(--color-accent)",
-                color: "var(--color-bg)",
-              }}
+              className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity"
             >
               Créer
             </button>
