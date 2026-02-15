@@ -106,10 +106,10 @@ BEGIN
     ('SOP-OFF-002', 'Délivrance sur ordonnance', d_off, 'Emmanuel', 'Validé', '1.1', '2025-10-10', '2026-10-10'),
     ('SOP-OFF-003', 'Conseil en aromathérapie', d_off, 'Léa M.', 'En cours', '0.8', NULL, NULL),
     ('SOP-OFF-004', 'Gestion des médicaments à marge thérapeutique étroite', d_off, 'Emmanuel', 'En cours', '0.7', NULL, NULL),
-    ('SOP-OFF-005', 'Programme d\'accompagnement patients chroniques', d_off, 'Marie L.', 'Planifié', '0.4', NULL, NULL),
-    ('SOP-OFF-006', 'Tests rapides d\'orientation diagnostique (TROD)', d_off, 'Léa M.', 'En cours', '0.6', NULL, NULL),
+    ('SOP-OFF-005', 'Programme d''accompagnement patients chroniques', d_off, 'Marie L.', 'Planifié', '0.4', NULL, NULL),
+    ('SOP-OFF-006', 'Tests rapides d''orientation diagnostique (TROD)', d_off, 'Léa M.', 'En cours', '0.6', NULL, NULL),
     ('SOP-OFF-007', 'Gestion du rayon parapharmacie', d_off, 'Sophie R.', 'Planifié', '0.2', NULL, NULL),
-    ('SOP-OFF-008', 'Programme fidélité L\'Écrin', d_off, 'Léa M.', 'Planifié', '0.3', NULL, NULL);
+    ('SOP-OFF-008', 'Programme fidélité L''Écrin', d_off, 'Léa M.', 'Planifié', '0.3', NULL, NULL);
 
   -- ===== Téléconsultation & TROD (4 SOPs) =====
   INSERT INTO sops (code, title, domain_id, owner, status, version, validated_at, next_revision) VALUES
@@ -123,11 +123,11 @@ BEGIN
     ('SOP-HYG-001', 'Nettoyage quotidien des locaux', d_hyg, 'Sophie R.', 'Validé', '1.0', '2025-11-25', '2026-11-25'),
     ('SOP-HYG-002', 'Gestion des déchets DASRI', d_hyg, 'Thomas D.', 'Validé', '1.1', '2025-10-15', '2026-10-15'),
     ('SOP-HYG-003', 'Plan de maîtrise sanitaire', d_hyg, 'Emmanuel', 'En cours', '0.7', NULL, NULL),
-    ('SOP-HYG-004', 'Conduite à tenir en cas d\'incendie', d_hyg, 'Thomas D.', 'Planifié', '0.5', NULL, NULL),
+    ('SOP-HYG-004', 'Conduite à tenir en cas d''incendie', d_hyg, 'Thomas D.', 'Planifié', '0.5', NULL, NULL),
     ('SOP-HYG-005', 'Prévention risques chimiques', d_hyg, 'Emmanuel', 'Planifié', '0.3', NULL, NULL),
     ('SOP-HYG-006', 'Ergonomie postes de travail', d_hyg, 'Sophie R.', 'Planifié', '0.2', NULL, NULL),
-    ('SOP-HYG-007', 'Plan de continuité d\'activité', d_hyg, 'Emmanuel', 'En cours', '0.6', NULL, NULL),
-    ('SOP-HYG-008', 'Contrôle d\'accès et vidéosurveillance', d_hyg, 'Thomas D.', 'Planifié', '0.4', NULL, NULL);
+    ('SOP-HYG-007', 'Plan de continuité d''activité', d_hyg, 'Emmanuel', 'En cours', '0.6', NULL, NULL),
+    ('SOP-HYG-008', 'Contrôle d''accès et vidéosurveillance', d_hyg, 'Thomas D.', 'Planifié', '0.4', NULL, NULL);
 
   -- ===== Système documentaire (6 SOPs) =====
   INSERT INTO sops (code, title, domain_id, owner, status, version, validated_at, next_revision) VALUES
@@ -165,7 +165,7 @@ BEGIN
 
   -- ===== SI & Cybersécurité (5 SOPs) =====
   INSERT INTO sops (code, title, domain_id, owner, status, version, validated_at, next_revision) VALUES
-    ('SOP-SIC-001', 'Politique de sécurité des systèmes d\'information', d_sic, 'Emmanuel', 'Validé', '1.0', '2025-11-30', '2026-11-30'),
+    ('SOP-SIC-001', 'Politique de sécurité des systèmes d''information', d_sic, 'Emmanuel', 'Validé', '1.0', '2025-11-30', '2026-11-30'),
     ('SOP-SIC-002', 'Sauvegarde et restauration données', d_sic, 'Emmanuel', 'En cours', '0.9', NULL, NULL),
     ('SOP-SIC-003', 'Gestion des accès utilisateurs', d_sic, 'Emmanuel', 'En cours', '0.7', NULL, NULL),
     ('SOP-SIC-004', 'Conduite à tenir en cas de cyberattaque', d_sic, 'Emmanuel', 'Planifié', '0.5', NULL, NULL),
