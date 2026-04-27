@@ -1,8 +1,24 @@
 node_modules/
 .next/
 .env.local
+.env.production
 out/
 .vercel
 *.tsbuildinfo
 next-env.d.ts
 .supabase/
+
+# Documents métier (binaires, à gérer hors repo code)
+SOPs-Pharma78/
+
+# Tests parasites sandbox (à nettoyer manuellement)
+supabase/migrations/_test_*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

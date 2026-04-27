@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx next build:*)"
+      "Bash(npx next build:*)",
+      "Bash(grep -qE \"Ready|started server|Local:|error\" \"C:\\\\\\\\Users\\\\\\\\PP_MIK~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\c--Users-PP-MIKAELIAN-Desktop-projets-digitaux-PRAQ-dash\\\\\\\\25b66ec0-4179-4cb2-b2d4-080e12c6abd7\\\\\\\\tasks\\\\\\\\bueoy9ywg.output\")",
+      "Bash(tail -n 40 \"C:\\\\\\\\Users\\\\\\\\PP_MIK~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\c--Users-PP-MIKAELIAN-Desktop-projets-digitaux-PRAQ-dash\\\\\\\\25b66ec0-4179-4cb2-b2d4-080e12c6abd7\\\\\\\\tasks\\\\\\\\bueoy9ywg.output\")",
+      "Bash(start http://localhost:3000)",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "mcp__claude_ai_Supabase__get_project_url",
+      "mcp__claude_ai_Supabase__get_publishable_keys",
+      "Bash(grep -qE \"Ready|error\" \"C:\\\\\\\\Users\\\\\\\\PP_MIK~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\c--Users-PP-MIKAELIAN-Desktop-projets-digitaux-PRAQ-dash\\\\\\\\25b66ec0-4179-4cb2-b2d4-080e12c6abd7\\\\\\\\tasks\\\\\\\\bewj464eq.output\")",
+      "Bash(tail -n 15 \"C:\\\\\\\\Users\\\\\\\\PP_MIK~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\c--Users-PP-MIKAELIAN-Desktop-projets-digitaux-PRAQ-dash\\\\\\\\25b66ec0-4179-4cb2-b2d4-080e12c6abd7\\\\\\\\tasks\\\\\\\\bewj464eq.output\")",
+      "Bash(start http://localhost:3001)"
     ]
   }
 }

@@ -1,0 +1,131 @@
+# =============================================================
+# Template YAML Metadata — SOP Pharma78
+# Schema v3.0 pour ingestion RAG
+# Chaque SOP produit un fichier .yaml dans 03-yaml/[PREFIX]/
+# =============================================================
+
+# --- Identification ---
+sop_id: "SOP-XXX-NNN"           # Depuis seed SQL (obligatoire)
+title: "Titre complet"           # Depuis seed SQL (obligatoire)
+version: "1.0"                   # Toujours 1.0 pour draft batch
+status: "draft"                  # Toujours draft pour batch
+date_generated: "AAAA-MM-JJ"    # Date de generation (obligatoire)
+date_effective: null             # Null jusqu'a validation PRAQ
+next_review: "AAAA-MM-JJ"       # +12 mois (ou +6 si PDA/STU/VIG)
+
+# --- Classification ---
+domain: "Nom domaine complet"    # Ex: "PDA & Dispensation" (obligatoire)
+domain_code: "XXX"               # Ex: "PDA" (obligatoire)
+domain_prefix: "NN-XXX"          # Ex: "02-PDA" (obligatoire)
+category: "Categorie"            # Dispensation, Stockage, Vigilance, etc. (obligatoire)
+subcategory: "Sous-categorie"    # Quotidien, Exceptionnel, Annuel, etc. (recommande)
+
+# --- Acteurs ---
+owner: "Prenom"                  # Depuis seed SQL (obligatoire)
+redacteur: "Dr E. Mikaelian (PRAQ)"  # Fixe (obligatoire)
+approbateur: "Fonction"          # Direction ou owner (obligatoire)
+
+# --- Reglementaire ---
+# Consulter IMPERATIVEMENT references/matrice-reglementaire.md
+iso_clause: "X.X.X"             # Clause ISO principale (obligatoire)
+regulatory_refs:                 # Toutes refs obligatoires du domaine
+  - framework: "ISO 9001:2015"
+    clause: "X.X.X"
+  - framework: "BPP"
+    clause: "Art. X"
+  # Ajouter CSP, RGPD, ANSM, MDR selon matrice
+
+# --- Decouverte RAG ---
+tags:                            # 5-8 tags (obligatoire, min 5)
+  - tag-domaine                  # Ex: pda, stupefiants, officine
+  - tag-processus                # Ex: dispensation, controle, livraison
+  - tag-lieu                     # Ex: ehpad, officine, reserve
+  - tag-frequence                # Ex: quotidien, hebdomadaire, annuel
+  - tag-criticite                # Ex: critique, important, standard
+keywords:                        # 3-5 termes techniques (obligatoire, min 3)
+  - terme-technique-1            # Termes specifiques au contenu
+  - terme-technique-2            # Noms d'equipements, logiciels
+  - terme-technique-3            # Acronymes metier
+
+# --- Liens inter-SOPs ---
+related_sops:                    # SOPs du meme domaine (obligatoire)
+  - "SOP-XXX-NNN"
+sops_amont: []                   # SOPs prerequis (recommande)
+sops_aval: []                    # SOPs declenchees apres (recommande)
+
+# --- Formation ---
+training_required: false         # true si PDA/STU/TLC/MET/PRE (obligatoire)
+habilitation_required: false     # true si competence formelle requise (obligatoire)
+competences: []                  # Liste competences specifiques (si training=true)
+
+# --- Fichiers associes ---
+files:
+  auditable: "01-auditables/[PREFIX]/[CODE]_Pharma78_v1.0.docx"  # (obligatoire)
+  operationnel: "02-operationnelles/[PREFIX]/TERRAIN-[CODE]_v1.0.docx"  # null si exempt
+  terrain_format: "A4 flowchart"  # "A5 checklist" / "A4 flowchart" / null
+
+# --- Archivage ---
+archival:
+  retention: "5 ans"             # Selon bible-regles.md (obligatoire)
+  location: "GED Pharma78"      # Fixe (obligatoire)
+  format: "DOCX + PDF"          # Fixe (obligatoire)
+  destruction: "Suppression securisee"  # Fixe (obligatoire)
+  # Durees specifiques :
+  # - Documents qualite SMQ : 5 ans (ISO 9001)
+  # - Documents pharmaceutiques : 5 ans (BPP)
+  # - Pharmacovigilance : 10 ans (ANSM)
+  # - Dispositifs medicaux : 15 ans (MDR 2017/745)
+  # - Donnees personnelles : selon finalite (RGPD art. 5.1.e)
+
+# --- Audit trail ---
+audit_trail:
+  generator: "data-processing-sop v3.0"
+  bible_version: "GOV-QMS-002 v1.0"
+  generated_at: "AAAA-MM-JJTHH:MM:SSZ"  # ISO 8601 (obligatoire)
+  source: "seed SQL 051+054"
+
+
+# =============================================================
+# REGLES D'ENRICHISSEMENT
+# =============================================================
+#
+# sop_id + title + owner + version : copie directe du seed SQL
+#
+# domain + domain_code + domain_prefix : mapping table SKILL.md
+#
+# iso_clause : colonne "Clauses principales" de matrice-reglementaire.md
+#
+# regulatory_refs : toutes les refs "OUI" du domaine dans la matrice
+#   - ISO 9001 : toujours present
+#   - BPP : si OUI dans matrice
+#   - CSP : si OUI + article specifique
+#   - RGPD : si OUI + articles
+#   - ANSM : si OUI
+#   - MDR : si OUI (orthopedie)
+#
+# tags : generer a partir de :
+#   1. Code domaine en minuscule
+#   2. Mots-cles extraits du titre (noms, verbes)
+#   3. Lieu d'execution (ehpad, officine, reserve, robot...)
+#   4. Frequence (quotidien, hebdomadaire, mensuel, annuel, exceptionnel)
+#   5. Criticite (critique si PDA/STU/VIG, important si autre operationnel)
+#
+# keywords : generer a partir de :
+#   1. Termes techniques specifiques au processus
+#   2. Noms d'equipements (robot Mekapharm, balance, sonde...)
+#   3. Noms de logiciels (Pharmagest, PDA Manager...)
+#   4. Acronymes metier (DIN, BPD, TROD...)
+#
+# training_required : true si domaine in [PDA, STU, TLC, MET, PRE]
+#
+# habilitation_required : true si competence formelle (ex: vaccination, TROD)
+#
+# archival.retention :
+#   - Domaine VIG : "10 ans"
+#   - Domaine ORT avec MDR : "15 ans"
+#   - Tous les autres : "5 ans"
+#
+# next_review :
+#   - PDA, STU, VIG : date_generated + 6 mois
+#   - Tous les autres : date_generated + 12 mois
+# =============================================================

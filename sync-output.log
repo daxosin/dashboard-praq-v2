@@ -1,0 +1,18 @@
+﻿**********************
+Début de la transcription Windows PowerShell
+Heure de début : 20260427144118
+Nom d'utilisateur : EMMANUEL\PP_MIKAELIAN
+Utilisateur runAs :  EMMANUEL\PP_MIKAELIAN
+Nom de la configuration : 
+Ordinateur : EMMANUEL (Microsoft Windows NT 10.0.26200.0)
+Application hôte : C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\sync-repo-to-prod.ps1
+ID de processus : 12240
+PSVersion: 5.1.26100.8115
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.8115
+BuildVersion: 10.0.26100.8115
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
