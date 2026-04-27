@@ -14,6 +14,13 @@ SOPs-Pharma78/
 # Tests parasites sandbox (à nettoyer manuellement)
 supabase/migrations/_test_*
 
+# Scripts/logs de synchronisation ponctuels
+sync-repo-to-prod.ps1
+sync-output.log
+do-commit-push.ps1
+do-commit-push.log
+.commit-message.txt
+
 # OS
 .DS_Store
 Thumbs.db

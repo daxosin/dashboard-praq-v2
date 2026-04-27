@@ -16,3 +16,61 @@ WSManStackVersion: 3.0
 PSRemotingProtocolVersion: 2.3
 SerializationVersion: 1.1.0.1
 **********************
+
+=== 1/6 Suppression des locks git parasites ===
+OK
+
+=== 2/6 Suppression des fichiers de test parasites ===
+OK
+
+=== 3/6 RÃ©paration upstream branche main ===
+git : fatal: branch 'main' has no upstream information
+Au caractère C:\Users\PP_MIKAELIAN\Desktop\projets digitaux\PRAQ dash\sync-repo-to-prod.ps1:37 : 1
++ git branch --unset-upstream 2>$null
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (fatal: branch '...eam information:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+branch 'main' set up to track 'origin/main'.
+OK
+
+=== 4/6 Ã‰tat avant commit ===
+        deleted:    supabase/migrations/054_seed_sops_missing.sql
+        deleted:    supabase/migrations/999_verify_schema.sql
+        deleted:    supabase/migrations/README.md
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .claude/skills/data-processing-sop/
+        docs/CARTO-QMS-001-Cartographie-visuelle.jsx
+        supabase/migrations/20260406090959_create_praq_tables.sql
+        supabase/migrations/20260406200033_create_capa_table.sql
+        supabase/migrations/20260406201733_create_formations_table.sql
+        supabase/migrations/20260408132010_add_score_global_to_kpi_history.sql
+        supabase/migrations/_archive/
+        sync-output.log
+        sync-repo-to-prod.ps1
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+=== 5/6 Commit global ===
+
+
+
+=== 6/6 Push vers origin/main ===
+
+
+==============================================
+  Synchronisation terminee. Le repo est aligne.
+==============================================
+
+Verification finale :
+
+
+
+Tu peux supprimer ce script :
+  Remove-Item -Force sync-repo-to-prod.ps1
+**********************
+Fin de la transcription Windows PowerShell
+Heure de fin : 20260427144130
+**********************
