@@ -10,7 +10,7 @@ import {
   Modal,
   ConfirmDelete,
 } from "@/components/ui";
-import { ClipboardIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon } from "@/components/icons";
+import { ClipboardIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon, DownloadIcon } from "@/components/icons";
 import {
   BarChart,
   Bar,
@@ -271,6 +271,147 @@ export function TabAudits() {
     setShowFindingModal(true);
   };
 
+  const handleExportPDF = (audit: Audit) => {
+    const esc = (s: unknown) =>
+      String(s ?? "").replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string),
+      );
+
+    const auditFindings = findings.filter((f) => f.audit_id === audit.id);
+    const domainName = audit.domain_id ? domainMap[audit.domain_id] : "Aucun domaine";
+    const plannedFr = audit.planned_at
+      ? new Date(audit.planned_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+      : "Non planifié";
+    const createdFr = audit.created_at
+      ? new Date(audit.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+      : "—";
+    const exportFr = new Date().toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
+
+    const findingTone: Record<string, string> = {
+      "Majeur": "#C0392B",
+      "Mineur": "#D4860B",
+      "Observation": "#5A6373",
+      "Point fort": "#2E7D5A",
+    };
+
+    const findingsHtml = auditFindings.length
+      ? auditFindings
+          .map((f) => {
+            const capa = f.capa_id ? capas.find((c) => c.id === f.capa_id) : null;
+            const capaRef = capa ? `CAPA-${capa.id.substring(0, 4).toUpperCase()}` : "";
+            return `
+              <div class="finding">
+                <div class="finding-head">
+                  <span class="tag" style="background:${findingTone[f.type] ?? "#5A6373"}">${esc(f.type)}</span>
+                  ${f.clause_ref ? `<span class="clause">Clause ${esc(f.clause_ref)}</span>` : ""}
+                  ${capaRef ? `<span class="capa">Lien ${esc(capaRef)}</span>` : ""}
+                </div>
+                <p class="finding-desc">${esc(f.description)}</p>
+              </div>`;
+          })
+          .join("")
+      : `<p class="empty">Aucun constat enregistré pour cet audit.</p>`;
+
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<title>Audit ${esc(audit.reference)} — Pharma78</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1a1a1a; font-size: 11pt; line-height: 1.5; margin: 0; background: #fff; }
+  header { border-bottom: 2px solid #1a1a1a; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .brand { font-size: 18pt; font-weight: 700; letter-spacing: -0.01em; }
+  .brand small { display: block; font-size: 9pt; font-weight: 400; color: #5A6373; letter-spacing: 0.04em; text-transform: uppercase; margin-top: 2px; }
+  .doc-meta { text-align: right; font-size: 9pt; color: #5A6373; }
+  h1 { font-size: 16pt; margin: 0 0 4px 0; }
+  h2 { font-size: 11pt; text-transform: uppercase; letter-spacing: 0.06em; color: #5A6373; border-bottom: 1px solid #d0d4dc; padding-bottom: 4px; margin: 24px 0 12px 0; }
+  .ref { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12pt; color: #2E7D5A; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-top: 6px; }
+  .grid div { font-size: 10pt; }
+  .grid .lbl { color: #5A6373; font-weight: 600; text-transform: uppercase; font-size: 8.5pt; letter-spacing: 0.05em; }
+  .summary { background: #f5f7fa; border-left: 3px solid #2E7D5A; padding: 10px 14px; font-size: 10.5pt; border-radius: 0 4px 4px 0; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  .kpi { border: 1px solid #d0d4dc; border-radius: 6px; padding: 10px 12px; }
+  .kpi .v { font-size: 18pt; font-weight: 700; }
+  .kpi .l { font-size: 8.5pt; color: #5A6373; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi.maj .v { color: #C0392B; }
+  .kpi.min .v { color: #D4860B; }
+  .kpi.obs .v { color: #5A6373; }
+  .finding { border: 1px solid #d0d4dc; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; page-break-inside: avoid; }
+  .finding-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .tag { color: #fff; font-size: 8.5pt; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .clause { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 9pt; color: #5A6373; }
+  .capa { font-size: 9pt; color: #2E7D5A; font-weight: 600; }
+  .finding-desc { margin: 0; font-size: 10.5pt; color: #1a1a1a; }
+  .empty { color: #5A6373; font-style: italic; font-size: 10pt; }
+  footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #d0d4dc; font-size: 8.5pt; color: #5A6373; display: flex; justify-content: space-between; }
+  @media print { .no-print { display: none !important; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  .toolbar { position: fixed; top: 12px; right: 12px; display: flex; gap: 8px; }
+  .toolbar button { padding: 8px 14px; border-radius: 6px; border: 1px solid #1a1a1a; background: #1a1a1a; color: #fff; font-size: 11pt; cursor: pointer; }
+  .toolbar button.alt { background: #fff; color: #1a1a1a; }
+</style>
+</head>
+<body>
+  <div class="toolbar no-print">
+    <button onclick="window.print()">Enregistrer en PDF</button>
+    <button class="alt" onclick="window.close()">Fermer</button>
+  </div>
+
+  <header>
+    <div class="brand">Pharma78<small>Rapport d'audit qualité</small></div>
+    <div class="doc-meta">
+      Exporté le ${esc(exportFr)}<br/>
+      Dashboard PRAQ v2
+    </div>
+  </header>
+
+  <h1><span class="ref">${esc(audit.reference)}</span> — ${esc(audit.type)}</h1>
+
+  <div class="grid">
+    <div><div class="lbl">Statut</div>${esc(audit.status)}</div>
+    <div><div class="lbl">Auditeur</div>${esc(audit.auditor || "—")}</div>
+    <div><div class="lbl">Domaine</div>${esc(domainName)}</div>
+    <div><div class="lbl">Date planifiée</div>${esc(plannedFr)}</div>
+    <div><div class="lbl">Créé le</div>${esc(createdFr)}</div>
+    <div><div class="lbl">Type d'audit</div>${esc(audit.type)}</div>
+  </div>
+
+  <h2>Synthèse</h2>
+  <div class="summary">${audit.summary ? esc(audit.summary) : "<em>Aucune synthèse renseignée.</em>"}</div>
+
+  <h2>Bilan des constats</h2>
+  <div class="kpis">
+    <div class="kpi maj"><div class="v">${audit.major_findings ?? 0}</div><div class="l">Constats majeurs</div></div>
+    <div class="kpi min"><div class="v">${audit.minor_findings ?? 0}</div><div class="l">Constats mineurs</div></div>
+    <div class="kpi obs"><div class="v">${audit.observations ?? 0}</div><div class="l">Observations</div></div>
+  </div>
+
+  <h2>Détail des constats (${auditFindings.length})</h2>
+  ${findingsHtml}
+
+  <footer>
+    <span>Pharma78 — Bois-d'Arcy (78) — Document interne qualité</span>
+    <span>Audit ${esc(audit.reference)}</span>
+  </footer>
+
+  <script>
+    window.addEventListener('load', function () { setTimeout(function () { window.focus(); window.print(); }, 200); });
+  </script>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank", "width=900,height=1100");
+    if (!win) {
+      alert("Le navigateur a bloqué l'ouverture de la fenêtre d'export. Autorisez les pop-ups pour ce site.");
+      return;
+    }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  };
+
   const getStatusBadgeVariant = (status: string): "ok" | "wip" | "plan" | "crit" => {
     switch (status) {
       case "Réalisé":
@@ -458,6 +599,13 @@ export function TabAudits() {
                       title="Ajouter un constat"
                     >
                       <ClipboardIcon size={15} />
+                    </button>
+                    <button
+                      onClick={() => handleExportPDF(audit)}
+                      className="p-2 text-mut hover:text-accent rounded-lg hover:bg-accent/10 transition-all"
+                      title="Exporter le rapport en PDF"
+                    >
+                      <DownloadIcon size={15} />
                     </button>
                     <button
                       onClick={() => setDeleteId(audit.id)}
