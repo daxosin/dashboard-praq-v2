@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -66,7 +66,7 @@ export default function DashboardLayout({
 
     try {
       await importAll(file);
-      alert('Import terminé avec succès');
+      alert('Import terminÃ© avec succÃ¨s');
     } catch (error) {
       console.error('Import failed:', error);
       alert('Erreur lors de l\'import');
@@ -110,13 +110,13 @@ export default function DashboardLayout({
             }}>
               <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
                 <circle cx="50" cy="50" r="45" fill="none" stroke="var(--brd)" strokeWidth="8" />
-                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--accent)" strokeWidth="8" strokeDasharray={`${(score.total / 100) * 283} 283`} strokeLinecap="round" />
+                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--accent)" strokeWidth="8" strokeDasharray={`${(score.scoreGlobal / 100) * 283} 283`} strokeLinecap="round" />
               </svg>
               <div style={{
                 position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                 fontSize: '15px', fontWeight: 700, color: 'var(--accent)',
               }}>
-                {score.total}
+                {score.scoreGlobal}
               </div>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function DashboardLayout({
               padding: '8px 14px', backgroundColor: 'var(--elev)', border: '1px solid var(--brd)',
               borderRadius: '8px', color: 'var(--text)', cursor: 'pointer', fontSize: '13px', fontWeight: 500,
             }}>
-              {theme === 'dark' ? '☀ Jour' : '☾ Nuit'}
+              {theme === 'dark' ? 'â˜€ Jour' : 'â˜¾ Nuit'}
             </button>
 
             <button onClick={handleExport} style={{
@@ -193,7 +193,7 @@ export default function DashboardLayout({
                 {currentTab.name}
               </span>
               <span style={{ fontSize: '13px', color: 'var(--mut)', marginLeft: '4px' }}>
-                — {currentTab.description}
+                â€” {currentTab.description}
               </span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--mut)" strokeWidth="2" style={{ marginLeft: 'auto', transform: menuOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
                 <polyline points="6 9 12 15 18 9" />

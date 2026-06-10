@@ -10,46 +10,42 @@ import {
 import {
   EditIcon,
   TrashIcon,
-  MailIcon,
-  PhoneIcon,
   UsersIcon,
   CheckIcon,
   XMarkIcon,
 } from "@/components/icons";
 import { useSupabaseCrud } from "@/lib/hooks/useSupabaseCrud";
-import type { Staff, Domain, ProcessType } from "@/lib/database.types";
+import type { StaffLite, Processus } from "@/lib/db-rows";
 
-// ─── Role helpers ────────────────────────────────────────────
-const STAFF_ROLES = ["PRAQ", "Préparateur", "Pharmacien", "Stagiaire", "Autre"] as const;
+// ─── Role helpers (valeurs DB UPPERCASE <-> labels français) ─
+const ROLE_OPTIONS: { value: string; label: string }[] = [
+  { value: "TITULAIRE", label: "Titulaire" },
+  { value: "PRAQ_ADJOINT", label: "PRAQ adjoint" },
+  { value: "PHARMACIEN", label: "Pharmacien" },
+  { value: "PREPARATEUR", label: "Préparateur" },
+  { value: "VENDEUR", label: "Vendeur" },
+  { value: "CAISSIER", label: "Caissier" },
+  { value: "LIVREUR", label: "Livreur" },
+  { value: "APPRENTI", label: "Apprenti" },
+  { value: "TECHNICIEN", label: "Technicien" },
+  { value: "RESPONSABLE", label: "Responsable" },
+];
+
+const roleLabel = (role: string): string =>
+  ROLE_OPTIONS.find((o) => o.value === role)?.label ?? role;
 
 type BadgeVariantForRole = "ok" | "wip" | "plan" | "crit";
 
 const roleBadgeVariant = (role: string): BadgeVariantForRole => {
   switch (role) {
-    case "PRAQ":
+    case "TITULAIRE":
+    case "PRAQ_ADJOINT":
       return "ok";
-    case "Pharmacien":
+    case "PHARMACIEN":
+    case "RESPONSABLE":
       return "wip";
-    case "Préparateur":
-      return "plan";
-    case "Stagiaire":
+    case "APPRENTI":
       return "crit";
-    default:
-      return "plan";
-  }
-};
-
-// ─── Process type helpers ────────────────────────────────────
-const PROCESS_TYPES: ProcessType[] = ["Management", "Réalisation", "Support"];
-
-const processTypeBadgeVariant = (pt: ProcessType): BadgeVariantForRole => {
-  switch (pt) {
-    case "Management":
-      return "ok";
-    case "Réalisation":
-      return "wip";
-    case "Support":
-      return "plan";
     default:
       return "plan";
   }
@@ -57,7 +53,7 @@ const processTypeBadgeVariant = (pt: ProcessType): BadgeVariantForRole => {
 
 // ─── Component ───────────────────────────────────────────────
 const TabAdministration: React.FC = () => {
-  // ── Staff CRUD ──────────────────────────────────────
+  // ── Staff CRUD (staff_lite : référentiel minimal) ───
   const {
     data: staffList,
     loading: staffLoading,
@@ -65,45 +61,45 @@ const TabAdministration: React.FC = () => {
     update: updateStaff,
     remove: removeStaff,
     refresh: refreshStaff,
-  } = useSupabaseCrud<Staff>("staff", {
-    orderBy: { column: "name", ascending: true },
+  } = useSupabaseCrud<StaffLite>("staff_lite", {
+    orderBy: { column: "prenom_nom", ascending: true },
   });
 
-  // ── Domains CRUD ────────────────────────────────────
+  // ── Processus CRUD ──────────────────────────────────
   const {
-    data: domains,
-    loading: domainsLoading,
-    create: createDomain,
-    update: updateDomain,
-    remove: removeDomain,
-    refresh: refreshDomains,
-  } = useSupabaseCrud<Domain>("domains", {
-    orderBy: { column: "name", ascending: true },
+    data: processusList,
+    loading: processusLoading,
+    create: createProcessus,
+    update: updateProcessus,
+    remove: removeProcessus,
+    refresh: refreshProcessus,
+  } = useSupabaseCrud<Processus>("processus", {
+    orderBy: { column: "code", ascending: true },
   });
 
   // ── Staff modal state ───────────────────────────────
   const [showStaffModal, setShowStaffModal] = useState(false);
-  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+  const [editingStaff, setEditingStaff] = useState<StaffLite | null>(null);
   const [staffForm, setStaffForm] = useState({
-    name: "",
-    email: "",
-    role: "PRAQ" as string,
-    cluster: "",
+    prenom_nom: "",
+    role: "PREPARATEUR" as string,
+    actif: true,
   });
 
   // ── Staff delete state ──────────────────────────────
-  const [deleteStaffTarget, setDeleteStaffTarget] = useState<Staff | null>(null);
+  const [deleteStaffTarget, setDeleteStaffTarget] = useState<StaffLite | null>(null);
 
-  // ── Domain modal state ──────────────────────────────
-  const [showDomainModal, setShowDomainModal] = useState(false);
-  const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
-  const [domainForm, setDomainForm] = useState({
-    name: "",
-    process_type: "Réalisation" as ProcessType,
+  // ── Processus modal state ───────────────────────────
+  const [showProcessusModal, setShowProcessusModal] = useState(false);
+  const [editingProcessus, setEditingProcessus] = useState<Processus | null>(null);
+  const [processusForm, setProcessusForm] = useState({
+    code: "",
+    nom: "",
+    description: "",
   });
 
-  // ── Domain delete state ─────────────────────────────
-  const [deleteDomainTarget, setDeleteDomainTarget] = useState<Domain | null>(null);
+  // ── Processus delete state ──────────────────────────
+  const [deleteProcessusTarget, setDeleteProcessusTarget] = useState<Processus | null>(null);
 
   // ── Responsable inline editing state ────────────────
   const [editingResponsable, setEditingResponsable] = useState<string | null>(null);
@@ -112,40 +108,35 @@ const TabAdministration: React.FC = () => {
   // ── Staff handlers ──────────────────────────────────
   const openAddStaffModal = () => {
     setEditingStaff(null);
-    setStaffForm({ name: "", email: "", role: "PRAQ", cluster: "" });
+    setStaffForm({ prenom_nom: "", role: "PREPARATEUR", actif: true });
     setShowStaffModal(true);
   };
 
-  const openEditStaffModal = (s: Staff) => {
+  const openEditStaffModal = (s: StaffLite) => {
     setEditingStaff(s);
     setStaffForm({
-      name: s.name,
-      email: s.email || "",
+      prenom_nom: s.prenom_nom,
       role: s.role,
-      cluster: s.cluster || "",
+      actif: s.actif,
     });
     setShowStaffModal(true);
   };
 
   const handleSaveStaff = async () => {
-    if (!staffForm.name.trim()) return;
+    if (!staffForm.prenom_nom.trim()) return;
 
     try {
       if (editingStaff) {
         await updateStaff(editingStaff.id, {
-          name: staffForm.name.trim(),
-          email: staffForm.email.trim() || null,
+          prenom_nom: staffForm.prenom_nom.trim(),
           role: staffForm.role,
-          cluster: staffForm.cluster.trim() || null,
+          actif: staffForm.actif,
         });
       } else {
         await createStaff({
-          name: staffForm.name.trim(),
-          email: staffForm.email.trim() || null,
+          prenom_nom: staffForm.prenom_nom.trim(),
           role: staffForm.role,
-          cluster: staffForm.cluster.trim() || null,
-          active: true,
-          created_by: null,
+          actif: staffForm.actif,
         });
       }
       setShowStaffModal(false);
@@ -166,73 +157,74 @@ const TabAdministration: React.FC = () => {
     }
   };
 
-  // ── Domain handlers ─────────────────────────────────
-  const openAddDomainModal = () => {
-    setEditingDomain(null);
-    setDomainForm({ name: "", process_type: "Réalisation" });
-    setShowDomainModal(true);
+  // ── Processus handlers ──────────────────────────────
+  const openAddProcessusModal = () => {
+    setEditingProcessus(null);
+    setProcessusForm({ code: "", nom: "", description: "" });
+    setShowProcessusModal(true);
   };
 
-  const openEditDomainModal = (d: Domain) => {
-    setEditingDomain(d);
-    setDomainForm({ name: d.name, process_type: d.process_type });
-    setShowDomainModal(true);
+  const openEditProcessusModal = (p: Processus) => {
+    setEditingProcessus(p);
+    setProcessusForm({
+      code: p.code,
+      nom: p.nom,
+      description: p.description || "",
+    });
+    setShowProcessusModal(true);
   };
 
-  const handleSaveDomain = async () => {
-    if (!domainForm.name.trim()) return;
+  const handleSaveProcessus = async () => {
+    if (!processusForm.code.trim() || !processusForm.nom.trim()) return;
 
     try {
-      if (editingDomain) {
-        await updateDomain(editingDomain.id, {
-          name: domainForm.name.trim(),
-          process_type: domainForm.process_type,
+      if (editingProcessus) {
+        await updateProcessus(editingProcessus.id, {
+          code: processusForm.code.trim(),
+          nom: processusForm.nom.trim(),
+          description: processusForm.description.trim() || null,
         });
       } else {
-        await createDomain({
-          name: domainForm.name.trim(),
-          process_type: domainForm.process_type,
-          created_by: null,
+        await createProcessus({
+          code: processusForm.code.trim(),
+          nom: processusForm.nom.trim(),
+          description: processusForm.description.trim() || null,
+          actif: true,
         });
       }
-      setShowDomainModal(false);
-      refreshDomains();
+      setShowProcessusModal(false);
+      refreshProcessus();
     } catch (error) {
-      console.error("Error saving domain:", error);
+      console.error("Error saving processus:", error);
     }
   };
 
-  const handleDeleteDomain = async () => {
-    if (!deleteDomainTarget) return;
+  const handleDeleteProcessus = async () => {
+    if (!deleteProcessusTarget) return;
     try {
-      await removeDomain(deleteDomainTarget.id);
-      setDeleteDomainTarget(null);
-      refreshDomains();
+      await removeProcessus(deleteProcessusTarget.id);
+      setDeleteProcessusTarget(null);
+      refreshProcessus();
     } catch (error) {
-      console.error("Error deleting domain:", error);
+      console.error("Error deleting processus:", error);
     }
   };
 
   // ── Responsable inline save ─────────────────────────
-  // We store the responsible name in the domain's `created_by` field
-  // as a simple convention (or you could add a `responsible` column).
-  // For now, we keep it simple with an inline edit approach.
-  // NOTE: Domains don't have a dedicated "responsible" field in the schema,
-  // so we use inline text stored via a lookup approach.
-  // We'll keep a local map for demonstration; in production you'd add a column.
-
-  const handleSaveResponsable = async (domainId: string) => {
+  // La table `processus` n'a pas de colonne dédiée "responsable" :
+  // on conserve la convention historique (nom stocké dans `created_by`).
+  const handleSaveResponsable = async (processusId: string) => {
     try {
-      await updateDomain(domainId, { created_by: responsableInput.trim() || null });
+      await updateProcessus(processusId, { created_by: responsableInput.trim() || null });
       setEditingResponsable(null);
       setResponsableInput("");
-      refreshDomains();
+      refreshProcessus();
     } catch (error) {
       console.error("Error saving responsable:", error);
     }
   };
 
-  const loading = staffLoading || domainsLoading;
+  const loading = staffLoading || processusLoading;
 
   if (loading) {
     return <div className="p-6 text-sec">Chargement...</div>;
@@ -242,20 +234,20 @@ const TabAdministration: React.FC = () => {
     <div className="space-y-10">
 
       {/* ════════════════════════════════════════════════════════
-          SECTION 1 — Staff Members (Employés)
+          SECTION 1 — Collaborateurs (staff_lite)
           ════════════════════════════════════════════════════════ */}
       <section>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-[12px] uppercase tracking-[1.8px] font-semibold text-mut">
-            Employés
+            Collaborateurs
           </h2>
-          <AddButton onClick={openAddStaffModal} label="Nouvel employé" />
+          <AddButton onClick={openAddStaffModal} label="Nouveau collaborateur" />
         </div>
 
         {staffList.length === 0 ? (
           <div className="bg-card border border-brd rounded-xl p-10 text-center">
             <UsersIcon size={40} className="text-mut mx-auto mb-3" />
-            <p className="text-[15px] text-mut">Aucun employé enregistré.</p>
+            <p className="text-[15px] text-mut">Aucun collaborateur enregistré.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -268,10 +260,10 @@ const TabAdministration: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[16px] font-bold text-text truncate">
-                      {s.name}
+                      {s.prenom_nom}
                     </h3>
                     <div className="mt-1">
-                      <Badge variant={roleBadgeVariant(s.role)}>{s.role}</Badge>
+                      <Badge variant={roleBadgeVariant(s.role)}>{roleLabel(s.role)}</Badge>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 ml-2 shrink-0">
@@ -292,32 +284,13 @@ const TabAdministration: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Details */}
-                <div className="space-y-1.5">
-                  {s.email && (
-                    <div className="flex items-center gap-2 text-[14px] text-sec">
-                      <MailIcon size={14} className="text-mut shrink-0" />
-                      <span className="truncate">{s.email}</span>
-                    </div>
-                  )}
-                  {s.cluster && (
-                    <div className="flex items-center gap-2 text-[14px] text-sec">
-                      <PhoneIcon size={14} className="text-mut shrink-0" />
-                      <span className="truncate">{s.cluster}</span>
-                    </div>
-                  )}
-                  {!s.email && !s.cluster && (
-                    <div className="text-[13px] text-mut italic">Aucune info de contact</div>
-                  )}
-                </div>
-
                 {/* Active indicator */}
                 <div className="flex items-center gap-1.5 mt-auto pt-2 border-t border-brd">
                   <span
-                    className={`w-2 h-2 rounded-full ${s.active ? "bg-grn" : "bg-mut"}`}
+                    className={`w-2 h-2 rounded-full ${s.actif ? "bg-grn" : "bg-mut"}`}
                   />
                   <span className="text-[12px] text-mut">
-                    {s.active ? "Actif" : "Inactif"}
+                    {s.actif ? "Actif" : "Inactif"}
                   </span>
                 </div>
               </div>
@@ -334,22 +307,20 @@ const TabAdministration: React.FC = () => {
           Responsables par processus
         </h2>
 
-        {domains.length === 0 ? (
+        {processusList.length === 0 ? (
           <div className="bg-card border border-brd rounded-xl p-10 text-center">
-            <p className="text-[15px] text-mut">Aucun domaine enregistré.</p>
+            <p className="text-[15px] text-mut">Aucun processus enregistré.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {domains.map((d) => (
+            {processusList.map((p) => (
               <div
-                key={d.id}
+                key={p.id}
                 className="bg-card border border-brd rounded-xl p-5 flex flex-col gap-3"
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[15px] font-semibold text-text">{d.name}</h3>
-                  <Badge variant={processTypeBadgeVariant(d.process_type)}>
-                    {d.process_type}
-                  </Badge>
+                  <h3 className="text-[15px] font-semibold text-text">{p.nom}</h3>
+                  <Badge variant="plan">{p.code}</Badge>
                 </div>
 
                 <div className="mt-1">
@@ -357,14 +328,14 @@ const TabAdministration: React.FC = () => {
                     Responsable
                   </label>
 
-                  {editingResponsable === d.id ? (
+                  {editingResponsable === p.id ? (
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
                         value={responsableInput}
                         onChange={(e) => setResponsableInput(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveResponsable(d.id);
+                          if (e.key === "Enter") handleSaveResponsable(p.id);
                           if (e.key === "Escape") {
                             setEditingResponsable(null);
                             setResponsableInput("");
@@ -375,7 +346,7 @@ const TabAdministration: React.FC = () => {
                         className="flex-1 px-3 py-2 bg-bg border border-brd rounded-lg text-[14px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                       />
                       <button
-                        onClick={() => handleSaveResponsable(d.id)}
+                        onClick={() => handleSaveResponsable(p.id)}
                         className="p-1.5 rounded-lg text-grn hover:bg-elev transition-colors"
                         aria-label="Confirmer"
                       >
@@ -395,13 +366,13 @@ const TabAdministration: React.FC = () => {
                   ) : (
                     <button
                       onClick={() => {
-                        setEditingResponsable(d.id);
-                        setResponsableInput(d.created_by || "");
+                        setEditingResponsable(p.id);
+                        setResponsableInput(p.created_by || "");
                       }}
                       className="w-full text-left px-3 py-2 rounded-lg border border-transparent hover:border-brd hover:bg-elev transition-all text-[14px] group"
                     >
-                      {d.created_by ? (
-                        <span className="text-text">{d.created_by}</span>
+                      {p.created_by ? (
+                        <span className="text-text">{p.created_by}</span>
                       ) : (
                         <span className="text-mut italic">Cliquer pour assigner</span>
                       )}
@@ -419,46 +390,45 @@ const TabAdministration: React.FC = () => {
       </section>
 
       {/* ════════════════════════════════════════════════════════
-          SECTION 3 — Domaines / Processus
+          SECTION 3 — Processus
           ════════════════════════════════════════════════════════ */}
       <section>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-[12px] uppercase tracking-[1.8px] font-semibold text-mut">
-            Domaines / Processus
+            Processus
           </h2>
-          <AddButton onClick={openAddDomainModal} label="Nouveau domaine" />
+          <AddButton onClick={openAddProcessusModal} label="Nouveau processus" />
         </div>
 
-        {domains.length === 0 ? (
+        {processusList.length === 0 ? (
           <div className="bg-card border border-brd rounded-xl p-10 text-center">
-            <p className="text-[15px] text-mut">Aucun domaine enregistré.</p>
+            <p className="text-[15px] text-mut">Aucun processus enregistré.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {domains.map((d) => (
+            {processusList.map((p) => (
               <div
-                key={d.id}
+                key={p.id}
                 className="bg-card border border-brd rounded-xl p-5 flex flex-col gap-3 hover:border-accent/30 transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-[15px] font-bold text-text truncate">{d.name}</h3>
-                    <div className="mt-1.5">
-                      <Badge variant={processTypeBadgeVariant(d.process_type)}>
-                        {d.process_type}
-                      </Badge>
+                    <h3 className="text-[15px] font-bold text-text truncate">{p.nom}</h3>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <Badge variant="plan">{p.code}</Badge>
+                      {p.actif === false && <Badge variant="crit">Inactif</Badge>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 ml-2 shrink-0">
                     <button
-                      onClick={() => openEditDomainModal(d)}
+                      onClick={() => openEditProcessusModal(p)}
                       className="p-2 rounded-lg text-mut hover:text-accent hover:bg-elev transition-colors"
                       aria-label="Modifier"
                     >
                       <EditIcon size={16} />
                     </button>
                     <button
-                      onClick={() => setDeleteDomainTarget(d)}
+                      onClick={() => setDeleteProcessusTarget(p)}
                       className="p-2 rounded-lg text-mut hover:text-red hover:bg-elev transition-colors"
                       aria-label="Supprimer"
                     >
@@ -467,9 +437,13 @@ const TabAdministration: React.FC = () => {
                   </div>
                 </div>
 
-                {d.created_by && (
+                {p.description && (
+                  <div className="text-[13px] text-sec">{p.description}</div>
+                )}
+
+                {p.created_by && (
                   <div className="text-[13px] text-sec">
-                    Responsable : <span className="font-medium text-text">{d.created_by}</span>
+                    Responsable : <span className="font-medium text-text">{p.created_by}</span>
                   </div>
                 )}
               </div>
@@ -484,47 +458,19 @@ const TabAdministration: React.FC = () => {
       <Modal
         isOpen={showStaffModal}
         onClose={() => setShowStaffModal(false)}
-        title={editingStaff ? "Modifier l'employé" : "Nouvel employé"}
+        title={editingStaff ? "Modifier le collaborateur" : "Nouveau collaborateur"}
       >
         <div className="space-y-5">
-          {/* Name */}
+          {/* Prénom Nom */}
           <div>
             <label className="text-[13px] font-semibold text-sec mb-2 block">
-              Nom *
+              Prénom Nom *
             </label>
             <input
               type="text"
-              value={staffForm.name}
-              onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })}
-              placeholder="Nom complet"
-              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-            />
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="text-[13px] font-semibold text-sec mb-2 block">
-              Email
-            </label>
-            <input
-              type="email"
-              value={staffForm.email}
-              onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
-              placeholder="exemple@pharma78.fr"
-              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-            />
-          </div>
-
-          {/* Cluster (used as phone placeholder) */}
-          <div>
-            <label className="text-[13px] font-semibold text-sec mb-2 block">
-              Téléphone / Cluster
-            </label>
-            <input
-              type="text"
-              value={staffForm.cluster}
-              onChange={(e) => setStaffForm({ ...staffForm, cluster: e.target.value })}
-              placeholder="06 12 34 56 78"
+              value={staffForm.prenom_nom}
+              onChange={(e) => setStaffForm({ ...staffForm, prenom_nom: e.target.value })}
+              placeholder="Prénom Nom"
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
@@ -539,12 +485,25 @@ const TabAdministration: React.FC = () => {
               onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
-              {STAFF_ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {role}
+              {ROLE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Actif */}
+          <div>
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={staffForm.actif}
+                onChange={(e) => setStaffForm({ ...staffForm, actif: e.target.checked })}
+                className="w-4 h-4 accent-[var(--color-accent)]"
+              />
+              <span className="text-[14px] text-text">Collaborateur actif</span>
+            </label>
           </div>
 
           {/* Actions */}
@@ -557,7 +516,7 @@ const TabAdministration: React.FC = () => {
             </button>
             <button
               onClick={handleSaveStaff}
-              disabled={!staffForm.name.trim()}
+              disabled={!staffForm.prenom_nom.trim()}
               className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {editingStaff ? "Enregistrer" : "Créer"}
@@ -567,60 +526,70 @@ const TabAdministration: React.FC = () => {
       </Modal>
 
       {/* ════════════════════════════════════════════════════════
-          MODAL — Add / Edit Domain
+          MODAL — Add / Edit Processus
           ════════════════════════════════════════════════════════ */}
       <Modal
-        isOpen={showDomainModal}
-        onClose={() => setShowDomainModal(false)}
-        title={editingDomain ? "Modifier le domaine" : "Nouveau domaine"}
+        isOpen={showProcessusModal}
+        onClose={() => setShowProcessusModal(false)}
+        title={editingProcessus ? "Modifier le processus" : "Nouveau processus"}
       >
         <div className="space-y-5">
-          {/* Name */}
+          {/* Code */}
           <div>
             <label className="text-[13px] font-semibold text-sec mb-2 block">
-              Nom du domaine *
+              Code *
             </label>
             <input
               type="text"
-              value={domainForm.name}
-              onChange={(e) => setDomainForm({ ...domainForm, name: e.target.value })}
+              value={processusForm.code}
+              onChange={(e) => setProcessusForm({ ...processusForm, code: e.target.value })}
+              placeholder="Ex : PR-01"
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+            />
+          </div>
+
+          {/* Nom */}
+          <div>
+            <label className="text-[13px] font-semibold text-sec mb-2 block">
+              Nom du processus *
+            </label>
+            <input
+              type="text"
+              value={processusForm.nom}
+              onChange={(e) => setProcessusForm({ ...processusForm, nom: e.target.value })}
               placeholder="Ex : Dispensation, Réception, Stockage..."
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
 
-          {/* Process type */}
+          {/* Description */}
           <div>
             <label className="text-[13px] font-semibold text-sec mb-2 block">
-              Type de processus *
+              Description
             </label>
-            <select
-              value={domainForm.process_type}
-              onChange={(e) => setDomainForm({ ...domainForm, process_type: e.target.value as ProcessType })}
+            <input
+              type="text"
+              value={processusForm.description}
+              onChange={(e) => setProcessusForm({ ...processusForm, description: e.target.value })}
+              placeholder="Description courte du processus"
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-            >
-              {PROCESS_TYPES.map((pt) => (
-                <option key={pt} value={pt}>
-                  {pt}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
             <button
-              onClick={() => setShowDomainModal(false)}
+              onClick={() => setShowProcessusModal(false)}
               className="bg-card border border-brd rounded-xl px-6 py-3 text-[14px] font-medium text-text hover:bg-elev transition-colors"
             >
               Annuler
             </button>
             <button
-              onClick={handleSaveDomain}
-              disabled={!domainForm.name.trim()}
+              onClick={handleSaveProcessus}
+              disabled={!processusForm.code.trim() || !processusForm.nom.trim()}
               className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {editingDomain ? "Enregistrer" : "Créer"}
+              {editingProcessus ? "Enregistrer" : "Créer"}
             </button>
           </div>
         </div>
@@ -634,16 +603,16 @@ const TabAdministration: React.FC = () => {
           isOpen={!!deleteStaffTarget}
           onConfirm={handleDeleteStaff}
           onCancel={() => setDeleteStaffTarget(null)}
-          itemName={deleteStaffTarget.name}
+          itemName={deleteStaffTarget.prenom_nom}
         />
       )}
 
-      {deleteDomainTarget && (
+      {deleteProcessusTarget && (
         <ConfirmDelete
-          isOpen={!!deleteDomainTarget}
-          onConfirm={handleDeleteDomain}
-          onCancel={() => setDeleteDomainTarget(null)}
-          itemName={deleteDomainTarget.name}
+          isOpen={!!deleteProcessusTarget}
+          onConfirm={handleDeleteProcessus}
+          onCancel={() => setDeleteProcessusTarget(null)}
+          itemName={deleteProcessusTarget.nom}
         />
       )}
     </div>

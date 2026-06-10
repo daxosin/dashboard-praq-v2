@@ -2,7 +2,12 @@
 
 import React, { useState, useMemo } from "react";
 import { useSupabaseCrud } from "@/lib/hooks/useSupabaseCrud";
-import type { Indicator, IndicatorValue } from "@/lib/database.types";
+import type {
+  Indicateur,
+  IndicateurInsert,
+  IndicateurValeur,
+  IndicateurValeurInsert,
+} from "@/lib/db-rows";
 import {
   KpiCard,
   Badge,
@@ -24,101 +29,145 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-type IndicatorWithValues = Indicator & {
-  values?: IndicatorValue[];
+type IndicateurEnrichi = Indicateur & {
+  values?: IndicateurValeur[];
   currentValue?: number;
-  lastPeriod?: string;
+  lastDate?: string;
   trend?: "up" | "down" | "stable";
   meetsTarget?: boolean;
 };
 
+const DIRECTION_OPTIONS: { value: Indicateur["direction"]; label: string }[] = [
+  { value: "above", label: "Au-dessus de la cible" },
+  { value: "below", label: "En dessous de la cible" },
+  { value: "between", label: "Entre les bornes" },
+];
+
+const FREQUENCE_OPTIONS: { value: string; label: string }[] = [
+  { value: "QUOT", label: "Quotidienne" },
+  { value: "HEBDO", label: "Hebdomadaire" },
+  { value: "MENS", label: "Mensuelle" },
+  { value: "TRIM", label: "Trimestrielle" },
+  { value: "ANNU", label: "Annuelle" },
+];
+
+const directionArrow = (direction: string): string =>
+  direction === "above" ? "↑" : direction === "below" ? "↓" : "↔";
+
+/** Une valeur atteint-elle la cible de son indicateur ? */
+const computeAtteint = (
+  ind: Indicateur,
+  valeur: number
+): boolean | undefined => {
+  if (ind.direction === "above")
+    return ind.cible != null ? valeur >= ind.cible : undefined;
+  if (ind.direction === "below")
+    return ind.cible != null ? valeur <= ind.cible : undefined;
+  if (ind.direction === "between")
+    return ind.borne_basse != null && ind.borne_haute != null
+      ? valeur >= ind.borne_basse && valeur <= ind.borne_haute
+      : undefined;
+  return undefined;
+};
+
+/** Cible affichable selon la direction. */
+const cibleLabel = (ind: Indicateur): string => {
+  if (ind.direction === "between") {
+    if (ind.borne_basse != null && ind.borne_haute != null) {
+      return `${ind.borne_basse} – ${ind.borne_haute} ${ind.unite || ""}`.trim();
+    }
+    return "-";
+  }
+  return ind.cible != null ? `${ind.cible} ${ind.unite || ""}`.trim() : "-";
+};
+
 export function TabIndicateurs() {
-  const [selectedIndicator, setSelectedIndicator] = useState<string | null>(
+  const [selectedIndicateur, setSelectedIndicateur] = useState<string | null>(
     null
   );
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showValueModal, setShowValueModal] = useState(false);
-  const [newIndicator, setNewIndicator] = useState({
-    label: "",
-    target: 0,
-    unit: "%",
-    direction: "up" as "up" | "down",
-    source_tab: "",
+  const [newIndicateur, setNewIndicateur] = useState({
+    code: "",
+    libelle: "",
+    cible: 0,
+    borne_basse: 0,
+    borne_haute: 0,
+    unite: "%",
+    direction: "above" as "above" | "below" | "between",
+    frequence: "MENS",
   });
   const [newValue, setNewValue] = useState({
-    indicator_id: "",
-    period: "",
-    value: 0,
+    indicateur_id: "",
+    date_calcul: "",
+    valeur: 0,
+    commentaire: "",
   });
 
   const {
-    data: indicators,
-    loading: loadingIndicators,
-    create: createIndicator,
-    update: updateIndicator,
-    remove: removeIndicator,
-  } = useSupabaseCrud<Indicator>("indicators", {
-    orderBy: { column: "label", ascending: true },
+    data: indicateurs,
+    loading: loadingIndicateurs,
+    create: createIndicateur,
+  } = useSupabaseCrud<Indicateur>("indicateurs", {
+    orderBy: { column: "ordre", ascending: true },
   });
 
   const {
-    data: indicatorValues,
-    loading: loadingValues,
-    create: createValue,
-    update: updateValue,
-    remove: removeValue,
-  } = useSupabaseCrud<IndicatorValue>("indicator_values", {
-    orderBy: { column: "period", ascending: false },
+    data: indicateurValeurs,
+    loading: loadingValeurs,
+    create: createValeur,
+    update: updateValeur,
+  } = useSupabaseCrud<IndicateurValeur>("indicateurs_valeurs", {
+    orderBy: { column: "date_calcul", ascending: false },
   });
 
   // Enrichir les indicateurs avec leurs valeurs
-  const enrichedIndicators: IndicatorWithValues[] = useMemo(() => {
-    return indicators.map((ind) => {
-      const values = indicatorValues.filter(
-        (v) => v.indicator_id === ind.id
+  const enrichedIndicateurs: IndicateurEnrichi[] = useMemo(() => {
+    return indicateurs.map((ind) => {
+      const values = indicateurValeurs.filter(
+        (v) => v.indicateur_id === ind.id
       );
       const sortedValues = [...values].sort(
         (a, b) =>
-          new Date(b.period).getTime() - new Date(a.period).getTime()
+          new Date(b.date_calcul).getTime() -
+          new Date(a.date_calcul).getTime()
       );
       const latest = sortedValues[0];
       const previous = sortedValues[1];
 
       let trend: "up" | "down" | "stable" = "stable";
       if (latest && previous) {
-        if (latest.value > previous.value) trend = "up";
-        else if (latest.value < previous.value) trend = "down";
+        if (latest.valeur > previous.valeur) trend = "up";
+        else if (latest.valeur < previous.valeur) trend = "down";
       }
 
-      const meetsTarget =
-        latest &&
-        ((ind.direction === "up" && latest.value >= ind.target) ||
-          (ind.direction === "down" && latest.value <= ind.target));
+      const meetsTarget = latest
+        ? latest.atteint ?? computeAtteint(ind, latest.valeur)
+        : undefined;
 
       return {
         ...ind,
         values,
-        currentValue: latest?.value,
-        lastPeriod: latest?.period,
+        currentValue: latest?.valeur,
+        lastDate: latest?.date_calcul,
         trend,
-        meetsTarget,
+        meetsTarget: meetsTarget ?? false,
       };
     });
-  }, [indicators, indicatorValues]);
+  }, [indicateurs, indicateurValeurs]);
 
   // KPI: Indicateurs conformes %
-  const conformeCount = enrichedIndicators.filter(
+  const conformeCount = enrichedIndicateurs.filter(
     (i) => i.meetsTarget
   ).length;
   const conformePercent =
-    indicators.length > 0
-      ? ((conformeCount / indicators.length) * 100).toFixed(0)
+    indicateurs.length > 0
+      ? ((conformeCount / indicateurs.length) * 100).toFixed(0)
       : "0";
 
   // KPI: Tendance globale
-  const trendUp = enrichedIndicators.filter((i) => i.trend === "up").length;
-  const trendDown = enrichedIndicators.filter(
+  const trendUp = enrichedIndicateurs.filter((i) => i.trend === "up").length;
+  const trendDown = enrichedIndicateurs.filter(
     (i) => i.trend === "down"
   ).length;
   const globalTrend =
@@ -129,8 +178,8 @@ export function TabIndicateurs() {
       : "Stable";
 
   // Filtres
-  const filteredIndicators = enrichedIndicators.filter((ind) => {
-    if (selectedIndicator && ind.id !== selectedIndicator) return false;
+  const filteredIndicateurs = enrichedIndicateurs.filter((ind) => {
+    if (selectedIndicateur && ind.id !== selectedIndicateur) return false;
     return true;
   });
 
@@ -151,37 +200,45 @@ export function TabIndicateurs() {
 
   const last12Months = getLast12Months();
 
+  // Valeur d'un indicateur pour un mois donné (date_calcul = date ISO)
+  const findValueForMonth = (
+    indicateurId: string,
+    month: string
+  ): IndicateurValeur | undefined =>
+    indicateurValeurs.find(
+      (v) =>
+        v.indicateur_id === indicateurId && v.date_calcul.startsWith(month)
+    );
+
   // DataTable pour saisie mensuelle
-  const monthColumns: ColumnDef<IndicatorWithValues>[] = [
+  const monthColumns: ColumnDef<IndicateurEnrichi>[] = [
     {
-      key: "label",
+      key: "libelle",
       label: "Indicateur",
       render: (row) => (
-        <span className="font-medium text-text">{row.label}</span>
+        <span className="font-medium text-text">{row.libelle}</span>
       ),
     },
     ...last12Months.map((month) => ({
       key: month,
       label: month,
-      render: (row: IndicatorWithValues) => {
-        const valueRecord = indicatorValues.find(
-          (v) => v.indicator_id === row.id && v.period === month
-        );
+      render: (row: IndicateurEnrichi) => {
+        const valueRecord = findValueForMonth(row.id, month);
         return (
           <EditableCell
             type="number"
-            value={valueRecord?.value ?? ""}
+            value={valueRecord?.valeur ?? ""}
             onSave={async (newVal) => {
               const numVal = Number(newVal);
               if (valueRecord) {
-                await updateValue(valueRecord.id, { value: numVal });
+                await updateValeur(valueRecord.id, { valeur: numVal });
               } else {
-                await createValue({
-                  indicator_id: row.id,
-                  period: month,
-                  value: numVal,
-                  created_by: null,
-                });
+                const payload: IndicateurValeurInsert = {
+                  indicateur_id: row.id,
+                  date_calcul: `${month}-01`,
+                  valeur: numVal,
+                };
+                await createValeur(payload as Partial<IndicateurValeur>);
               }
             }}
           />
@@ -191,12 +248,12 @@ export function TabIndicateurs() {
   ];
 
   // DataTable récapitulative
-  const summaryColumns: ColumnDef<IndicatorWithValues>[] = [
+  const summaryColumns: ColumnDef<IndicateurEnrichi>[] = [
     {
-      key: "label",
+      key: "libelle",
       label: "Indicateur",
       render: (row) => (
-        <span className="font-medium text-text">{row.label}</span>
+        <span className="font-medium text-text">{row.libelle}</span>
       ),
     },
     {
@@ -205,37 +262,31 @@ export function TabIndicateurs() {
       render: (row) => (
         <span className="text-text">
           {row.currentValue !== undefined
-            ? `${row.currentValue.toFixed(2)} ${row.unit}`
+            ? `${row.currentValue.toFixed(2)} ${row.unite || ""}`.trim()
             : "-"}
         </span>
       ),
     },
     {
-      key: "target",
+      key: "cible",
       label: "Objectif",
-      render: (row) => (
-        <span className="text-mut">
-          {row.target} {row.unit}
-        </span>
-      ),
+      render: (row) => <span className="text-mut">{cibleLabel(row)}</span>,
     },
     {
       key: "ecart",
       label: "Écart",
       render: (row) => {
-        if (row.currentValue === undefined) return <span>-</span>;
-        const ecart = row.currentValue - row.target;
+        if (row.currentValue === undefined || row.cible == null)
+          return <span>-</span>;
+        const ecart = row.currentValue - row.cible;
         const isGood =
-          (row.direction === "up" && ecart >= 0) ||
-          (row.direction === "down" && ecart <= 0);
+          (row.direction === "above" && ecart >= 0) ||
+          (row.direction === "below" && ecart <= 0) ||
+          (row.direction === "between" && row.meetsTarget);
         return (
-          <span
-            className={
-              isGood ? "text-grn" : "text-red"
-            }
-          >
+          <span className={isGood ? "text-grn" : "text-red"}>
             {ecart > 0 ? "+" : ""}
-            {ecart.toFixed(2)} {row.unit}
+            {ecart.toFixed(2)} {row.unite || ""}
           </span>
         );
       },
@@ -250,9 +301,7 @@ export function TabIndicateurs() {
             : row.trend === "down"
             ? "↘ Baisse"
             : "→ Stable";
-        return (
-          <span className="text-sec">{trendLabel}</span>
-        );
+        return <span className="text-sec">{trendLabel}</span>;
       },
     },
     {
@@ -266,16 +315,37 @@ export function TabIndicateurs() {
     },
   ];
 
-  const handleAddIndicator = async () => {
+  const handleAddIndicateur = async () => {
+    if (!newIndicateur.code.trim() || !newIndicateur.libelle.trim()) return;
     try {
-      await createIndicator(newIndicator);
+      const payload: IndicateurInsert = {
+        code: newIndicateur.code.trim().toUpperCase(),
+        libelle: newIndicateur.libelle.trim(),
+        direction: newIndicateur.direction,
+        frequence: newIndicateur.frequence,
+        unite: newIndicateur.unite || null,
+        cible:
+          newIndicateur.direction === "between" ? null : newIndicateur.cible,
+        borne_basse:
+          newIndicateur.direction === "between"
+            ? newIndicateur.borne_basse
+            : null,
+        borne_haute:
+          newIndicateur.direction === "between"
+            ? newIndicateur.borne_haute
+            : null,
+      };
+      await createIndicateur(payload as Partial<Indicateur>);
       setShowAddModal(false);
-      setNewIndicator({
-        label: "",
-        target: 0,
-        unit: "%",
-        direction: "up",
-        source_tab: "",
+      setNewIndicateur({
+        code: "",
+        libelle: "",
+        cible: 0,
+        borne_basse: 0,
+        borne_haute: 0,
+        unite: "%",
+        direction: "above",
+        frequence: "MENS",
       });
     } catch (err) {
       console.error("Erreur création indicateur:", err);
@@ -283,16 +353,28 @@ export function TabIndicateurs() {
   };
 
   const handleAddValue = async () => {
+    if (!newValue.indicateur_id || !newValue.date_calcul) return;
     try {
-      await createValue(newValue);
+      const payload: IndicateurValeurInsert = {
+        indicateur_id: newValue.indicateur_id,
+        date_calcul: newValue.date_calcul,
+        valeur: newValue.valeur,
+        commentaire: newValue.commentaire.trim() || null,
+      };
+      await createValeur(payload as Partial<IndicateurValeur>);
       setShowValueModal(false);
-      setNewValue({ indicator_id: "", period: "", value: 0 });
+      setNewValue({
+        indicateur_id: "",
+        date_calcul: "",
+        valeur: 0,
+        commentaire: "",
+      });
     } catch (err) {
       console.error("Erreur ajout valeur:", err);
     }
   };
 
-  if (loadingIndicators || loadingValues) {
+  if (loadingIndicateurs || loadingValeurs) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-mut">Chargement...</p>
@@ -308,7 +390,7 @@ export function TabIndicateurs() {
           icon={<BarChartIcon size={20} />}
           label="Indicateurs conformes"
           value={`${conformePercent}%`}
-          subtitle={`${conformeCount} / ${indicators.length} atteignent leur objectif`}
+          subtitle={`${conformeCount} / ${indicateurs.length} atteignent leur objectif`}
         />
         <KpiCard
           icon={<BarChartIcon size={20} />}
@@ -318,15 +400,13 @@ export function TabIndicateurs() {
         />
       </div>
 
-      {/* Cartes des 8 indicateurs qualité */}
+      {/* Cartes des 8 premiers indicateurs qualité */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {enrichedIndicators.slice(0, 8).map((ind) => {
+        {enrichedIndicateurs.slice(0, 8).map((ind) => {
           const sparklineData = last12Months
             .map((month) => {
-              const val = indicatorValues.find(
-                (v) => v.indicator_id === ind.id && v.period === month
-              );
-              return { month, value: val?.value || 0 };
+              const val = findValueForMonth(ind.id, month);
+              return { month, value: val?.valeur || 0 };
             })
             .filter((d) => d.value > 0);
 
@@ -336,15 +416,15 @@ export function TabIndicateurs() {
               className="bg-card border border-brd rounded-xl p-6 hover:bg-elev transition-colors duration-200"
             >
               <p className="text-[10px] font-semibold uppercase tracking-[1.8px] text-mut mb-2">
-                {ind.label}
+                {ind.libelle}
               </p>
               <p className="text-[24px] font-bold text-text mb-1">
                 {ind.currentValue !== undefined
-                  ? `${ind.currentValue.toFixed(2)} ${ind.unit}`
+                  ? `${ind.currentValue.toFixed(2)} ${ind.unite || ""}`.trim()
                   : "-"}
               </p>
               <p className="text-[11px] text-sec mb-2">
-                Objectif: {ind.target} {ind.unit} ({ind.direction === "up" ? "↑" : "↓"})
+                Objectif: {cibleLabel(ind)} ({directionArrow(ind.direction)})
               </p>
               <Badge variant={ind.meetsTarget ? "ok" : "crit"}>
                 {ind.meetsTarget ? "Conforme" : "Non conforme"}
@@ -373,13 +453,13 @@ export function TabIndicateurs() {
       <div className="flex gap-4 flex-wrap">
         <select
           className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
-          value={selectedIndicator || ""}
-          onChange={(e) => setSelectedIndicator(e.target.value || null)}
+          value={selectedIndicateur || ""}
+          onChange={(e) => setSelectedIndicateur(e.target.value || null)}
         >
           <option value="">Tous les indicateurs</option>
-          {indicators.map((ind) => (
+          {indicateurs.map((ind) => (
             <option key={ind.id} value={ind.id}>
-              {ind.label}
+              {ind.libelle}
             </option>
           ))}
         </select>
@@ -391,10 +471,7 @@ export function TabIndicateurs() {
           Saisie mensuelle
         </h3>
         <div className="overflow-x-auto">
-          <DataTable
-            data={filteredIndicators}
-            columns={monthColumns}
-          />
+          <DataTable data={filteredIndicateurs} columns={monthColumns} />
         </div>
       </div>
 
@@ -404,15 +481,13 @@ export function TabIndicateurs() {
           Graphiques de tendance
         </h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredIndicators.map((ind) => {
+          {filteredIndicateurs.map((ind) => {
             const chartData = last12Months.map((month) => {
-              const val = indicatorValues.find(
-                (v) => v.indicator_id === ind.id && v.period === month
-              );
+              const val = findValueForMonth(ind.id, month);
               return {
                 month: month.substring(5),
-                value: val?.value || null,
-                target: ind.target,
+                value: val?.valeur ?? null,
+                cible: ind.cible,
               };
             });
 
@@ -424,7 +499,7 @@ export function TabIndicateurs() {
                 className="bg-card border border-brd rounded-xl p-6"
               >
                 <h4 className="text-[14px] font-semibold text-text mb-3">
-                  {ind.label}
+                  {ind.libelle}
                 </h4>
                 {hasData ? (
                   <ResponsiveContainer width="100%" height={200}>
@@ -466,15 +541,17 @@ export function TabIndicateurs() {
                         name="Valeur"
                         dot={{ r: 3 }}
                       />
-                      <Line
-                        type="monotone"
-                        dataKey="target"
-                        stroke="var(--muted)"
-                        strokeWidth={1.5}
-                        strokeDasharray="5 5"
-                        name="Objectif"
-                        dot={false}
-                      />
+                      {ind.cible != null && (
+                        <Line
+                          type="monotone"
+                          dataKey="cible"
+                          stroke="var(--muted)"
+                          strokeWidth={1.5}
+                          strokeDasharray="5 5"
+                          name="Objectif"
+                          dot={false}
+                        />
+                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
@@ -495,16 +572,19 @@ export function TabIndicateurs() {
         <h3 className="text-[18px] font-semibold text-text mb-3">
           Vue récapitulative
         </h3>
-        <DataTable
-          data={filteredIndicators}
-          columns={summaryColumns}
-        />
+        <DataTable data={filteredIndicateurs} columns={summaryColumns} />
       </div>
 
       {/* Actions */}
       <div className="flex gap-3">
-        <AddButton onClick={() => setShowAddModal(true)} label="Nouvel indicateur" />
-        <AddButton onClick={() => setShowValueModal(true)} label="Saisir valeur" />
+        <AddButton
+          onClick={() => setShowAddModal(true)}
+          label="Nouvel indicateur"
+        />
+        <AddButton
+          onClick={() => setShowValueModal(true)}
+          label="Saisir valeur"
+        />
       </div>
 
       {/* Modal ajout indicateur */}
@@ -517,44 +597,31 @@ export function TabIndicateurs() {
           <div className="space-y-4">
             <div>
               <label className="block text-[13px] font-semibold text-sec mb-2">
-                Libellé
+                Code *
               </label>
               <input
                 type="text"
+                placeholder="Ex : TAUX-CONFORMITE-PDA"
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                value={newIndicator.label}
+                value={newIndicateur.code}
                 onChange={(e) =>
-                  setNewIndicator({ ...newIndicator, label: e.target.value })
+                  setNewIndicateur({ ...newIndicateur, code: e.target.value })
                 }
               />
             </div>
             <div>
               <label className="block text-[13px] font-semibold text-sec mb-2">
-                Objectif
+                Libellé *
               </label>
               <input
-                type="number"
-                step="0.01"
+                type="text"
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                value={newIndicator.target}
+                value={newIndicateur.libelle}
                 onChange={(e) =>
-                  setNewIndicator({
-                    ...newIndicator,
-                    target: Number(e.target.value),
+                  setNewIndicateur({
+                    ...newIndicateur,
+                    libelle: e.target.value,
                   })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">
-                Unité
-              </label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                value={newIndicator.unit}
-                onChange={(e) =>
-                  setNewIndicator({ ...newIndicator, unit: e.target.value })
                 }
               />
             </div>
@@ -564,33 +631,118 @@ export function TabIndicateurs() {
               </label>
               <select
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                value={newIndicator.direction}
+                value={newIndicateur.direction}
                 onChange={(e) =>
-                  setNewIndicator({
-                    ...newIndicator,
-                    direction: e.target.value as "up" | "down",
+                  setNewIndicateur({
+                    ...newIndicateur,
+                    direction: e.target.value as
+                      | "above"
+                      | "below"
+                      | "between",
                   })
                 }
               >
-                <option value="up">Hausse (↑)</option>
-                <option value="down">Baisse (↓)</option>
+                {DIRECTION_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
               </select>
             </div>
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">
-                Source (optionnel)
-              </label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                value={newIndicator.source_tab || ""}
-                onChange={(e) =>
-                  setNewIndicator({
-                    ...newIndicator,
-                    source_tab: e.target.value,
-                  })
-                }
-              />
+            {newIndicateur.direction === "between" ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[13px] font-semibold text-sec mb-2">
+                    Borne basse
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                    value={newIndicateur.borne_basse}
+                    onChange={(e) =>
+                      setNewIndicateur({
+                        ...newIndicateur,
+                        borne_basse: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-sec mb-2">
+                    Borne haute
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                    value={newIndicateur.borne_haute}
+                    onChange={(e) =>
+                      setNewIndicateur({
+                        ...newIndicateur,
+                        borne_haute: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-[13px] font-semibold text-sec mb-2">
+                  Cible
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                  value={newIndicateur.cible}
+                  onChange={(e) =>
+                    setNewIndicateur({
+                      ...newIndicateur,
+                      cible: Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[13px] font-semibold text-sec mb-2">
+                  Unité
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                  value={newIndicateur.unite}
+                  onChange={(e) =>
+                    setNewIndicateur({
+                      ...newIndicateur,
+                      unite: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] font-semibold text-sec mb-2">
+                  Fréquence
+                </label>
+                <select
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                  value={newIndicateur.frequence}
+                  onChange={(e) =>
+                    setNewIndicateur({
+                      ...newIndicateur,
+                      frequence: e.target.value,
+                    })
+                  }
+                >
+                  {FREQUENCE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="flex gap-3 justify-end">
               <button
@@ -600,8 +752,11 @@ export function TabIndicateurs() {
                 Annuler
               </button>
               <button
-                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90"
-                onClick={handleAddIndicator}
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleAddIndicateur}
+                disabled={
+                  !newIndicateur.code.trim() || !newIndicateur.libelle.trim()
+                }
               >
                 Créer
               </button>
@@ -612,7 +767,11 @@ export function TabIndicateurs() {
 
       {/* Modal saisie valeur */}
       {showValueModal && (
-        <Modal isOpen={showValueModal} title="Saisir valeur" onClose={() => setShowValueModal(false)}>
+        <Modal
+          isOpen={showValueModal}
+          title="Saisir valeur"
+          onClose={() => setShowValueModal(false)}
+        >
           <div className="space-y-4">
             <div>
               <label className="block text-[13px] font-semibold text-sec mb-2">
@@ -620,30 +779,29 @@ export function TabIndicateurs() {
               </label>
               <select
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                value={newValue.indicator_id}
+                value={newValue.indicateur_id}
                 onChange={(e) =>
-                  setNewValue({ ...newValue, indicator_id: e.target.value })
+                  setNewValue({ ...newValue, indicateur_id: e.target.value })
                 }
               >
                 <option value="">Sélectionner...</option>
-                {indicators.map((ind) => (
+                {indicateurs.map((ind) => (
                   <option key={ind.id} value={ind.id}>
-                    {ind.label}
+                    {ind.libelle}
                   </option>
                 ))}
               </select>
             </div>
             <div>
               <label className="block text-[13px] font-semibold text-sec mb-2">
-                Période (YYYY-MM)
+                Date de calcul
               </label>
               <input
-                type="text"
-                placeholder="2026-02"
+                type="date"
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                value={newValue.period}
+                value={newValue.date_calcul}
                 onChange={(e) =>
-                  setNewValue({ ...newValue, period: e.target.value })
+                  setNewValue({ ...newValue, date_calcul: e.target.value })
                 }
               />
             </div>
@@ -655,9 +813,22 @@ export function TabIndicateurs() {
                 type="number"
                 step="0.01"
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                value={newValue.value}
+                value={newValue.valeur}
                 onChange={(e) =>
-                  setNewValue({ ...newValue, value: Number(e.target.value) })
+                  setNewValue({ ...newValue, valeur: Number(e.target.value) })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-[13px] font-semibold text-sec mb-2">
+                Commentaire (optionnel)
+              </label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                value={newValue.commentaire}
+                onChange={(e) =>
+                  setNewValue({ ...newValue, commentaire: e.target.value })
                 }
               />
             </div>
@@ -669,8 +840,9 @@ export function TabIndicateurs() {
                 Annuler
               </button>
               <button
-                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90"
+                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleAddValue}
+                disabled={!newValue.indicateur_id || !newValue.date_calcul}
               >
                 Ajouter
               </button>

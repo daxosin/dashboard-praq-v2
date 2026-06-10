@@ -15,7 +15,7 @@ import {
 } from "@/components/ui";
 import type { ColumnDef } from "@/components/ui";
 import { DocIcon, TrashIcon } from "@/components/icons";
-import type { Sop, Domain, SopStatus } from "@/lib/database.types";
+import type { Sop, SopInsert, Processus } from "@/lib/db-rows";
 import {
   BarChart,
   Bar,
@@ -29,117 +29,137 @@ import {
   Cell,
 } from "recharts";
 
+/* ------------------------------------------------------------------ */
+/*  Statuts réels de la table `sops` (valeurs DB en UPPERCASE)         */
+/* ------------------------------------------------------------------ */
+type SopStatut = "BROUILLON" | "EN_VIGUEUR" | "A_REVISER" | "EXPIREE" | "ARCHIVEE";
+
+const STATUT_OPTIONS: { value: SopStatut; label: string }[] = [
+  { value: "BROUILLON", label: "Brouillon" },
+  { value: "EN_VIGUEUR", label: "En vigueur" },
+  { value: "A_REVISER", label: "À réviser" },
+  { value: "EXPIREE", label: "Expirée" },
+  { value: "ARCHIVEE", label: "Archivée" },
+];
+
+const statutLabel = (v: string | null | undefined): string =>
+  STATUT_OPTIONS.find((o) => o.value === v)?.label ?? String(v ?? "");
+
 export const TabDocuments: React.FC = () => {
   const { data: sops, loading: loadingSops, update: updateSop, create: createSop, remove: removeSop } = useSupabaseCrud<Sop>("sops", {
     select: "*",
     orderBy: { column: "code", ascending: true },
   });
 
-  const { data: domains, loading: loadingDomains } = useSupabaseCrud<Domain>("domains", {
+  const { data: processus, loading: loadingProcessus } = useSupabaseCrud<Processus>("processus", {
     select: "*",
-    orderBy: { column: "name", ascending: true },
+    orderBy: { column: "nom", ascending: true },
   });
 
   const [selectedSop, setSelectedSop] = useState<Sop | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [sopToDelete, setSopToDelete] = useState<Sop | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterDomain, setFilterDomain] = useState<string>("all");
+  const [filterStatut, setFilterStatut] = useState<string>("all");
+  const [filterProcessus, setFilterProcessus] = useState<string>("all");
 
-  const [newSop, setNewSop] = useState({
+  const [newSop, setNewSop] = useState<Partial<SopInsert>>({
     code: "",
-    title: "",
-    domain_id: "",
-    owner: "",
-    status: "Planifié" as SopStatus,
+    titre: "",
+    processus_id: null,
+    responsable: "",
+    statut: "BROUILLON",
     version: "1.0",
-    validated_at: null as string | null,
-    next_revision: null as string | null,
+    categorie: "",
     notes: "",
   });
 
-  const loading = loadingSops || loadingDomains;
+  const loading = loadingSops || loadingProcessus;
 
   // Calculate KPIs
   const kpis = useMemo(() => {
     const total = sops.length;
-    const validated = sops.filter((s) => s.status === "Validé").length;
-    const inProgress = sops.filter((s) => s.status === "En cours").length;
-    const maturityRate = total > 0 ? Math.round((validated / total) * 100) : 0;
+    const enVigueur = sops.filter((s) => s.statut === "EN_VIGUEUR").length;
+    const brouillons = sops.filter((s) => s.statut === "BROUILLON").length;
+    const maturityRate = total > 0 ? Math.round((enVigueur / total) * 100) : 0;
 
-    return { total, validated, inProgress, maturityRate };
+    return { total, enVigueur, brouillons, maturityRate };
   }, [sops]);
 
-  // Group SOPs by domain
-  const sopsByDomain = useMemo(() => {
-    const grouped: Record<string, { validated: number; inProgress: number; planned: number; total: number }> = {};
+  // Group SOPs by processus
+  const sopsByProcessus = useMemo(() => {
+    const grouped: Record<string, { enVigueur: number; aReviser: number; brouillons: number; total: number }> = {};
 
-    domains.forEach((domain) => {
-      grouped[domain.id] = { validated: 0, inProgress: 0, planned: 0, total: 0 };
+    processus.forEach((p) => {
+      grouped[p.id] = { enVigueur: 0, aReviser: 0, brouillons: 0, total: 0 };
     });
 
     sops.forEach((sop) => {
-      if (sop.domain_id && grouped[sop.domain_id]) {
-        grouped[sop.domain_id].total += 1;
-        if (sop.status === "Validé") grouped[sop.domain_id].validated += 1;
-        else if (sop.status === "En cours") grouped[sop.domain_id].inProgress += 1;
-        else if (sop.status === "Planifié") grouped[sop.domain_id].planned += 1;
+      if (sop.processus_id && grouped[sop.processus_id]) {
+        grouped[sop.processus_id].total += 1;
+        if (sop.statut === "EN_VIGUEUR") grouped[sop.processus_id].enVigueur += 1;
+        else if (sop.statut === "A_REVISER") grouped[sop.processus_id].aReviser += 1;
+        else if (sop.statut === "BROUILLON") grouped[sop.processus_id].brouillons += 1;
       }
     });
 
     return grouped;
-  }, [sops, domains]);
+  }, [sops, processus]);
 
   // Alerts - SOPs needing revision
   const alerts = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
-    return sops.filter((sop) => sop.status === "Validé" && sop.next_revision && sop.next_revision < today);
+    return sops.filter(
+      (sop) =>
+        (sop.statut === "A_REVISER" || sop.statut === "EXPIREE") ||
+        (sop.statut === "EN_VIGUEUR" && sop.date_revision && sop.date_revision < today),
+    );
   }, [sops]);
 
-  // Chart data - by status
-  const statusChartData = useMemo(() => {
-    const validated = sops.filter((s) => s.status === "Validé").length;
-    const inProgress = sops.filter((s) => s.status === "En cours").length;
-    const planned = sops.filter((s) => s.status === "Planifié").length;
-
-    return [
-      { name: "Validé", count: validated, fill: "var(--color-grn)" },
-      { name: "En cours", count: inProgress, fill: "var(--color-amb)" },
-      { name: "Planifié", count: planned, fill: "var(--color-mut)" },
-    ];
+  // Chart data - by statut
+  const statutChartData = useMemo(() => {
+    return STATUT_OPTIONS.map((o) => ({
+      name: o.label,
+      count: sops.filter((s) => s.statut === o.value).length,
+      fill:
+        o.value === "EN_VIGUEUR"
+          ? "var(--color-grn)"
+          : o.value === "A_REVISER" || o.value === "EXPIREE"
+            ? "var(--color-amb)"
+            : "var(--color-mut)",
+    }));
   }, [sops]);
 
-  // Chart data - by domain
-  const domainChartData = useMemo(() => {
-    const domainCounts: Record<string, number> = {};
+  // Chart data - by processus
+  const processusChartData = useMemo(() => {
+    const counts: Record<string, number> = {};
     sops.forEach((sop) => {
-      if (sop.domain_id) {
-        domainCounts[sop.domain_id] = (domainCounts[sop.domain_id] || 0) + 1;
+      if (sop.processus_id) {
+        counts[sop.processus_id] = (counts[sop.processus_id] || 0) + 1;
       }
     });
 
-    return domains.map((domain, idx) => ({
-      name: domain.name,
-      count: domainCounts[domain.id] || 0,
-      fill: `hsl(${(idx * 360) / domains.length}, 60%, 50%)`,
+    return processus.map((p, idx) => ({
+      name: p.nom,
+      count: counts[p.id] || 0,
+      fill: `hsl(${(idx * 360) / Math.max(processus.length, 1)}, 60%, 50%)`,
     }));
-  }, [sops, domains]);
+  }, [sops, processus]);
 
   // Filtered SOPs
   const filteredSops = useMemo(() => {
     let result = sops;
 
-    if (filterStatus !== "all") {
-      result = result.filter((s) => s.status === filterStatus);
+    if (filterStatut !== "all") {
+      result = result.filter((s) => s.statut === filterStatut);
     }
 
-    if (filterDomain !== "all") {
-      result = result.filter((s) => s.domain_id === filterDomain);
+    if (filterProcessus !== "all") {
+      result = result.filter((s) => s.processus_id === filterProcessus);
     }
 
     return result;
-  }, [sops, filterStatus, filterDomain]);
+  }, [sops, filterStatut, filterProcessus]);
 
   // Handlers
   const handleUpdateSop = async (id: string, updates: Partial<Sop>) => {
@@ -152,17 +172,28 @@ export const TabDocuments: React.FC = () => {
 
   const handleCreateSop = async () => {
     try {
-      await createSop(newSop);
+      const payload: Partial<SopInsert> = {
+        code: (newSop.code || "").trim(),
+        titre: (newSop.titre || "").trim(),
+        processus_id: newSop.processus_id || null,
+        responsable: newSop.responsable?.trim() || null,
+        statut: newSop.statut || "BROUILLON",
+        version: newSop.version || "1.0",
+        notes: newSop.notes?.trim() || null,
+      };
+      if (newSop.categorie && newSop.categorie.trim()) {
+        payload.categorie = newSop.categorie.trim();
+      }
+      await createSop(payload);
       setShowAddModal(false);
       setNewSop({
         code: "",
-        title: "",
-        domain_id: "",
-        owner: "",
-        status: "Planifié",
+        titre: "",
+        processus_id: null,
+        responsable: "",
+        statut: "BROUILLON",
         version: "1.0",
-        validated_at: null,
-        next_revision: null,
+        categorie: "",
         notes: "",
       });
     } catch (error) {
@@ -181,13 +212,15 @@ export const TabDocuments: React.FC = () => {
     }
   };
 
-  const getDomainName = (domainId: string): string => {
-    return domains.find((d) => d.id === domainId)?.name || "N/A";
+  const getProcessusName = (processusId: string | null): string => {
+    if (!processusId) return "N/A";
+    return processus.find((p) => p.id === processusId)?.nom || "N/A";
   };
 
-  const getBadgeVariant = (status: SopStatus): "ok" | "wip" | "plan" | "crit" => {
-    if (status === "Validé") return "ok";
-    if (status === "En cours") return "wip";
+  const getBadgeVariant = (statut: string): "ok" | "wip" | "plan" | "crit" => {
+    if (statut === "EN_VIGUEUR") return "ok";
+    if (statut === "A_REVISER") return "wip";
+    if (statut === "EXPIREE") return "crit";
     return "plan";
   };
 
@@ -202,56 +235,50 @@ export const TabDocuments: React.FC = () => {
       ),
     },
     {
-      key: "title",
+      key: "titre",
       label: "Titre",
       sortable: true,
       render: (sop) => (
         <EditableCell
-          value={sop.title}
-          onSave={(newValue) => handleUpdateSop(sop.id, { title: String(newValue) })}
+          value={sop.titre}
+          onSave={(newValue) => handleUpdateSop(sop.id, { titre: String(newValue) })}
         />
       ),
     },
     {
-      key: "domain_id",
-      label: "Domaine",
+      key: "processus_id",
+      label: "Processus",
       sortable: true,
       render: (sop) => (
         <EditableCell
-          value={sop.domain_id || ""}
+          value={sop.processus_id || ""}
           type="select"
-          options={domains.map((d) => ({ value: d.id, label: d.name }))}
-          onSave={(newValue) => handleUpdateSop(sop.id, { domain_id: String(newValue) })}
+          options={processus.map((p) => ({ value: p.id, label: p.nom }))}
+          onSave={(newValue) => handleUpdateSop(sop.id, { processus_id: String(newValue) || null })}
         />
       ),
     },
     {
-      key: "owner",
+      key: "responsable",
       label: "Responsable",
       sortable: true,
       render: (sop) => (
         <EditableCell
-          value={sop.owner || ""}
-          onSave={(newValue) => handleUpdateSop(sop.id, { owner: String(newValue) })}
+          value={sop.responsable || ""}
+          onSave={(newValue) => handleUpdateSop(sop.id, { responsable: String(newValue) || null })}
         />
       ),
     },
     {
-      key: "status",
+      key: "statut",
       label: "Statut",
       sortable: true,
       render: (sop) => (
         <EditableCell
-          value={sop.status}
+          value={sop.statut}
           type="select"
-          options={[
-            { value: "Planifié", label: "Planifié" },
-            { value: "En cours", label: "En cours" },
-            { value: "Validé", label: "Validé" },
-            { value: "En révision", label: "En révision" },
-            { value: "Archivé", label: "Archivé" },
-          ]}
-          onSave={(newValue) => handleUpdateSop(sop.id, { status: String(newValue) as SopStatus })}
+          options={STATUT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+          onSave={(newValue) => handleUpdateSop(sop.id, { statut: String(newValue) })}
         />
       ),
     },
@@ -267,26 +294,26 @@ export const TabDocuments: React.FC = () => {
       ),
     },
     {
-      key: "validated_at",
-      label: "Date validation",
+      key: "date_derniere_revision",
+      label: "Dernière révision",
       sortable: true,
       render: (sop) => (
         <EditableCell
-          value={sop.validated_at || ""}
+          value={sop.date_derniere_revision || ""}
           type="date"
-          onSave={(newValue) => handleUpdateSop(sop.id, { validated_at: String(newValue) || null })}
+          onSave={(newValue) => handleUpdateSop(sop.id, { date_derniere_revision: String(newValue) || null })}
         />
       ),
     },
     {
-      key: "next_revision",
+      key: "date_revision",
       label: "Prochaine révision",
       sortable: true,
       render: (sop) => (
         <EditableCell
-          value={sop.next_revision || ""}
+          value={sop.date_revision || ""}
           type="date"
-          onSave={(newValue) => handleUpdateSop(sop.id, { next_revision: String(newValue) || null })}
+          onSave={(newValue) => handleUpdateSop(sop.id, { date_revision: String(newValue) || null })}
         />
       ),
     },
@@ -325,18 +352,18 @@ export const TabDocuments: React.FC = () => {
           icon={<DocIcon size={16} />}
           label="Total SOPs"
           value={kpis.total}
-          subtitle={`${domains.length} domaines`}
+          subtitle={`${processus.length} processus`}
         />
         <KpiCard
           icon={<DocIcon size={16} />}
-          label="Validées"
-          value={kpis.validated}
-          subtitle="Statut validé"
+          label="En vigueur"
+          value={kpis.enVigueur}
+          subtitle="Statut en vigueur"
         />
         <KpiCard
           icon={<DocIcon size={16} />}
-          label="En cours"
-          value={kpis.inProgress}
+          label="Brouillons"
+          value={kpis.brouillons}
           subtitle="Rédaction en cours"
           accent="amber"
         />
@@ -344,7 +371,7 @@ export const TabDocuments: React.FC = () => {
           icon={<DocIcon size={16} />}
           label="Taux maturité"
           value={`${kpis.maturityRate}%`}
-          subtitle={`${kpis.validated}/${kpis.total} validées`}
+          subtitle={`${kpis.enVigueur}/${kpis.total} en vigueur`}
         />
       </div>
 
@@ -356,29 +383,37 @@ export const TabDocuments: React.FC = () => {
             <AlertLine
               key={sop.id}
               severity="amber"
-              message={`SOP ${sop.code} "${sop.title}" - Révision échue (${sop.next_revision})`}
+              message={`SOP ${sop.code} "${sop.titre}" - ${
+                sop.statut === "EN_VIGUEUR"
+                  ? `Révision échue (${sop.date_revision})`
+                  : statutLabel(sop.statut)
+              }`}
             />
           ))}
         </div>
       )}
 
-      {/* Vue par domaine */}
+      {/* Vue par processus */}
       <div>
-        <h3 className="text-[14px] font-semibold text-text mb-3">Vue par domaine</h3>
+        <h3 className="text-[14px] font-semibold text-text mb-3">Vue par processus</h3>
         <div className="space-y-3">
-          {domains.map((domain) => {
-            const stats = sopsByDomain[domain.id];
+          {processus.map((p) => {
+            const stats = sopsByProcessus[p.id];
             if (!stats || stats.total === 0) return null;
 
             return (
-              <div key={domain.id} className="bg-card border border-brd rounded-md p-3">
+              <div key={p.id} className="bg-card border border-brd rounded-md p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[13px] font-medium text-text">{domain.name}</span>
+                  <span className="text-[13px] font-medium text-text">{p.nom}</span>
                   <span className="text-[11px] text-sec">
-                    {stats.validated}/{stats.total} validées
+                    {stats.enVigueur}/{stats.total} en vigueur
                   </span>
                 </div>
-                <ProgressBar3 green={stats.validated} amber={stats.inProgress} total={stats.total} />
+                <ProgressBar3
+                  green={stats.enVigueur}
+                  amber={stats.aReviser + stats.brouillons}
+                  total={stats.total}
+                />
               </div>
             );
           })}
@@ -391,7 +426,7 @@ export const TabDocuments: React.FC = () => {
         <div className="bg-card border border-brd rounded-xl p-6">
           <h3 className="text-[14px] font-semibold text-text mb-4">Répartition par statut</h3>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={statusChartData}>
+            <BarChart data={statutChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-brd)" />
               <XAxis dataKey="name" tick={{ fill: "var(--color-sec)", fontSize: 11 }} />
               <YAxis tick={{ fill: "var(--color-sec)", fontSize: 11 }} />
@@ -408,13 +443,13 @@ export const TabDocuments: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Répartition par domaine */}
+        {/* Répartition par processus */}
         <div className="bg-card border border-brd rounded-xl p-6">
-          <h3 className="text-[14px] font-semibold text-text mb-4">Répartition par domaine</h3>
+          <h3 className="text-[14px] font-semibold text-text mb-4">Répartition par processus</h3>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
-                data={domainChartData.filter((d) => d.count > 0)}
+                data={processusChartData.filter((d) => d.count > 0)}
                 dataKey="count"
                 nameKey="name"
                 cx="50%"
@@ -422,7 +457,7 @@ export const TabDocuments: React.FC = () => {
                 outerRadius={80}
                 label={(entry) => `${entry.name}: ${entry.count}`}
               >
-                {domainChartData.map((entry, index) => (
+                {processusChartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
               </Pie>
@@ -442,27 +477,27 @@ export const TabDocuments: React.FC = () => {
       {/* Filters and Add Button */}
       <div className="flex flex-wrap items-center gap-3">
         <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
+          value={filterStatut}
+          onChange={(e) => setFilterStatut(e.target.value)}
           className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px] outline-none focus:border-accent transition-colors"
         >
           <option value="all">Tous les statuts</option>
-          <option value="Planifié">Planifié</option>
-          <option value="En cours">En cours</option>
-          <option value="Validé">Validé</option>
-          <option value="En révision">En révision</option>
-          <option value="Archivé">Archivé</option>
+          {STATUT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
         </select>
 
         <select
-          value={filterDomain}
-          onChange={(e) => setFilterDomain(e.target.value)}
+          value={filterProcessus}
+          onChange={(e) => setFilterProcessus(e.target.value)}
           className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px] outline-none focus:border-accent transition-colors"
         >
-          <option value="all">Tous les domaines</option>
-          {domains.map((domain) => (
-            <option key={domain.id} value={domain.id}>
-              {domain.name}
+          <option value="all">Tous les processus</option>
+          {processus.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nom}
             </option>
           ))}
         </select>
@@ -481,16 +516,20 @@ export const TabDocuments: React.FC = () => {
           <div className="space-y-4">
             <div>
               <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold">Titre</label>
-              <p className="text-[14px] text-text mt-1">{selectedSop.title}</p>
+              <p className="text-[14px] text-text mt-1">{selectedSop.titre}</p>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold">Domaine</label>
-              <p className="text-[14px] text-text mt-1">{getDomainName(selectedSop.domain_id)}</p>
+              <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold">Processus</label>
+              <p className="text-[14px] text-text mt-1">{getProcessusName(selectedSop.processus_id)}</p>
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold">Catégorie</label>
+              <p className="text-[14px] text-text mt-1">{selectedSop.categorie}</p>
             </div>
             <div>
               <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold">Statut</label>
               <div className="mt-1">
-                <Badge variant={getBadgeVariant(selectedSop.status)}>{selectedSop.status}</Badge>
+                <Badge variant={getBadgeVariant(selectedSop.statut)}>{statutLabel(selectedSop.statut)}</Badge>
               </div>
             </div>
             <div>
@@ -499,15 +538,15 @@ export const TabDocuments: React.FC = () => {
             </div>
             <div>
               <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold">Responsable</label>
-              <p className="text-[14px] text-text mt-1">{selectedSop.owner || "Non défini"}</p>
+              <p className="text-[14px] text-text mt-1">{selectedSop.responsable || "Non défini"}</p>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold">Date validation</label>
-              <p className="text-[14px] text-text mt-1">{selectedSop.validated_at || "Non validé"}</p>
+              <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold">Dernière révision</label>
+              <p className="text-[14px] text-text mt-1">{selectedSop.date_derniere_revision || "Aucune"}</p>
             </div>
             <div>
               <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold">Prochaine révision</label>
-              <p className="text-[14px] text-text mt-1">{selectedSop.next_revision || "Non définie"}</p>
+              <p className="text-[14px] text-text mt-1">{selectedSop.date_revision || "Non définie"}</p>
             </div>
             {selectedSop.notes && (
               <div>
@@ -518,8 +557,16 @@ export const TabDocuments: React.FC = () => {
             <div>
               <label className="text-[10px] uppercase tracking-[0.8px] text-mut font-semibold">Cycle de vie</label>
               <div className="mt-2 space-y-1 text-[12px] text-sec">
-                <p>Créée le: {new Date(selectedSop.created_at).toLocaleDateString()}</p>
-                <p>Dernière mise à jour: {new Date(selectedSop.updated_at).toLocaleDateString()}</p>
+                <p>
+                  Créée le:{" "}
+                  {selectedSop.date_creation || selectedSop.created_at
+                    ? new Date((selectedSop.date_creation || selectedSop.created_at) as string).toLocaleDateString("fr-FR")
+                    : "—"}
+                </p>
+                <p>
+                  Dernière mise à jour:{" "}
+                  {selectedSop.updated_at ? new Date(selectedSop.updated_at).toLocaleDateString("fr-FR") : "—"}
+                </p>
               </div>
             </div>
           </div>
@@ -535,7 +582,7 @@ export const TabDocuments: React.FC = () => {
             </label>
             <input
               type="text"
-              value={newSop.code}
+              value={newSop.code || ""}
               onChange={(e) => setNewSop({ ...newSop, code: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               placeholder="Ex: SOP-001"
@@ -547,28 +594,40 @@ export const TabDocuments: React.FC = () => {
             </label>
             <input
               type="text"
-              value={newSop.title}
-              onChange={(e) => setNewSop({ ...newSop, title: e.target.value })}
+              value={newSop.titre || ""}
+              onChange={(e) => setNewSop({ ...newSop, titre: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               placeholder="Titre de la SOP"
             />
           </div>
           <div>
             <label className="text-[13px] font-semibold text-sec block mb-2">
-              Domaine
+              Processus
             </label>
             <select
-              value={newSop.domain_id}
-              onChange={(e) => setNewSop({ ...newSop, domain_id: e.target.value })}
+              value={newSop.processus_id || ""}
+              onChange={(e) => setNewSop({ ...newSop, processus_id: e.target.value || null })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
-              <option value="">Sélectionner un domaine</option>
-              {domains.map((domain) => (
-                <option key={domain.id} value={domain.id}>
-                  {domain.name}
+              <option value="">Sélectionner un processus</option>
+              {processus.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nom}
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="text-[13px] font-semibold text-sec block mb-2">
+              Catégorie
+            </label>
+            <input
+              type="text"
+              value={newSop.categorie || ""}
+              onChange={(e) => setNewSop({ ...newSop, categorie: e.target.value })}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+              placeholder="Ex: PDA, Officine..."
+            />
           </div>
           <div>
             <label className="text-[13px] font-semibold text-sec block mb-2">
@@ -576,8 +635,8 @@ export const TabDocuments: React.FC = () => {
             </label>
             <input
               type="text"
-              value={newSop.owner}
-              onChange={(e) => setNewSop({ ...newSop, owner: e.target.value })}
+              value={newSop.responsable || ""}
+              onChange={(e) => setNewSop({ ...newSop, responsable: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               placeholder="Nom du responsable"
             />
@@ -587,15 +646,15 @@ export const TabDocuments: React.FC = () => {
               Statut
             </label>
             <select
-              value={newSop.status}
-              onChange={(e) => setNewSop({ ...newSop, status: e.target.value as SopStatus })}
+              value={newSop.statut || "BROUILLON"}
+              onChange={(e) => setNewSop({ ...newSop, statut: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
-              <option value="Planifié">Planifié</option>
-              <option value="En cours">En cours</option>
-              <option value="Validé">Validé</option>
-              <option value="En révision">En révision</option>
-              <option value="Archivé">Archivé</option>
+              {STATUT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -604,7 +663,7 @@ export const TabDocuments: React.FC = () => {
             </label>
             <input
               type="text"
-              value={newSop.version}
+              value={newSop.version || ""}
               onChange={(e) => setNewSop({ ...newSop, version: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               placeholder="Ex: 1.0"
@@ -615,7 +674,7 @@ export const TabDocuments: React.FC = () => {
               Notes
             </label>
             <textarea
-              value={newSop.notes}
+              value={newSop.notes || ""}
               onChange={(e) => setNewSop({ ...newSop, notes: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               rows={3}
@@ -631,7 +690,7 @@ export const TabDocuments: React.FC = () => {
             </button>
             <button
               onClick={handleCreateSop}
-              disabled={!newSop.code || !newSop.title || !newSop.domain_id}
+              disabled={!newSop.code || !newSop.titre}
               className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Créer
@@ -648,7 +707,7 @@ export const TabDocuments: React.FC = () => {
           setShowDeleteConfirm(false);
           setSopToDelete(null);
         }}
-        itemName={sopToDelete ? `${sopToDelete.code} - ${sopToDelete.title}` : undefined}
+        itemName={sopToDelete ? `${sopToDelete.code} - ${sopToDelete.titre}` : undefined}
       />
     </div>
   );

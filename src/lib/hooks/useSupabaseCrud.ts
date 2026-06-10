@@ -104,7 +104,8 @@ export function useSupabaseCrud<T = any>(
     }
   };
 
-  const remove = async (id: string) => {
+  // Soft delete (deleted_at) — jamais de DELETE physique : traçabilité ISO 9001.
+  const remove = async (id: string, reason?: string) => {
     const previousData = [...data];
     try {
       const optimisticData = data.filter((item: any) => item.id !== id);
@@ -112,7 +113,10 @@ export function useSupabaseCrud<T = any>(
 
       const { error: deleteError } = await supabase
         .from(tableName)
-        .delete()
+        .update({
+          deleted_at: new Date().toISOString(),
+          ...(reason ? { deletion_reason: reason } : {}),
+        })
         .eq('id', id);
 
       if (deleteError) throw deleteError;

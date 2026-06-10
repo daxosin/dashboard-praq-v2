@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useSupabaseCrud } from "@/lib/hooks/useSupabaseCrud";
-import type { Equipment, Maintenance, EquipmentInsert, MaintenanceInsert } from "@/lib/database.types";
+import type { Equipement, EquipementInsert, Maintenance, MaintenanceInsert } from "@/lib/db-rows";
 import {
   KpiCard,
   DataTable,
@@ -29,39 +29,43 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const EQUIPMENT_STATUSES = [
-  "Opérationnel",
-  "En panne",
-  "En maintenance",
-  "Décommissionné",
-] as const;
+/* ------------------------------------------------------------------ */
+/*  Enum value <-> display label mapping (aligned on real DB CHECKs)  */
+/* ------------------------------------------------------------------ */
+const EQUIPEMENT_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "MESURE", label: "Mesure" },
+  { value: "CONSERVATION", label: "Conservation" },
+  { value: "PREPARATION", label: "Préparation" },
+  { value: "AUTRE", label: "Autre" },
+];
 
-const CRITICALITIES = ["Critique", "Important", "Standard"] as const;
+const EQUIPEMENT_STATUT_OPTIONS: { value: string; label: string }[] = [
+  { value: "CONFORME", label: "Conforme" },
+  { value: "A_VERIFIER", label: "À vérifier" },
+  { value: "NON_CONFORME", label: "Non conforme" },
+  { value: "HORS_SERVICE", label: "Hors service" },
+];
 
-const EQUIPMENT_CATEGORIES = [
-  "Balance",
-  "Automate",
-  "Groupe froid",
-  "Sonde température",
-  "Ordinateur",
-  "Imprimante",
-  "Scanner",
-  "Thermomètre",
-  "pH-mètre",
-  "Autre",
-] as const;
+const MAINTENANCE_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "PREVENTIVE", label: "Préventive" },
+  { value: "CURATIVE", label: "Curative" },
+  { value: "METROLOGIE", label: "Métrologie" },
+  { value: "ETALONNAGE", label: "Étalonnage" },
+  { value: "VERIF_REGLEMENTAIRE", label: "Vérification réglementaire" },
+];
 
-const MAINTENANCE_TYPES = ["Préventive", "Curative", "Étalonnage"] as const;
+const MAINTENANCE_STATUT_OPTIONS: { value: string; label: string }[] = [
+  { value: "PLANIFIEE", label: "Planifiée" },
+  { value: "EN_COURS", label: "En cours" },
+  { value: "REALISEE", label: "Réalisée" },
+  { value: "ECHOUE", label: "Échouée" },
+  { value: "ANNULEE", label: "Annulée" },
+];
 
-const MAINTENANCE_STATUSES = ["Planifiée", "Réalisée", "En retard"] as const;
-
-const FREQUENCIES = [
-  "Annuelle",
-  "Semestrielle",
-  "Trimestrielle",
-  "Mensuelle",
-  "Autre",
-] as const;
+const BOOLEAN_OPTIONS = [
+  { value: "true", label: "Oui" },
+  { value: "false", label: "Non" },
+];
 
 const LOCATIONS = [
   "PDA Robot 1",
@@ -75,24 +79,23 @@ const LOCATIONS = [
   "Locaux techniques",
 ] as const;
 
-const CHART_COLORS = ["#00FF88", "#FFB800", "#FF4444", "#00CCFF", "#CC88FF", "#FF8844"];
+const labelFor = (opts: { value: string; label: string }[], v: string | null): string =>
+  opts.find((o) => o.value === v)?.label ?? String(v ?? "");
 
-const THEME_COLORS = {
-  primary: "var(--accent)",
-  grn: "var(--grn)",
-  amb: "var(--amb)",
-  red: "var(--red)",
-  muted: "var(--text-muted)",
-};
+/** Statuts maintenance encore "actifs" (échéance opposable) */
+const isMaintenancePending = (statut: string): boolean =>
+  statut === "PLANIFIEE" || statut === "EN_COURS";
+
+const CHART_COLORS = ["#00FF88", "#FFB800", "#FF4444", "#00CCFF", "#CC88FF", "#FF8844"];
 
 export function TabEquipements() {
   const {
-    data: equipments,
-    loading: loadingEquipments,
-    create: createEquipment,
-    update: updateEquipment,
-    remove: removeEquipment,
-  } = useSupabaseCrud<Equipment>("equipment", {
+    data: equipements,
+    loading: loadingEquipements,
+    create: createEquipement,
+    update: updateEquipement,
+    remove: removeEquipement,
+  } = useSupabaseCrud<Equipement>("equipements", {
     orderBy: { column: "created_at", ascending: false },
   });
 
@@ -103,31 +106,29 @@ export function TabEquipements() {
     update: updateMaintenance,
     remove: removeMaintenance,
   } = useSupabaseCrud<Maintenance>("maintenance", {
-    orderBy: { column: "next_due_at", ascending: true },
+    orderBy: { column: "date_planifiee", ascending: true },
   });
 
-  const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
+  const [showAddEquipementModal, setShowAddEquipementModal] = useState(false);
   const [showAddMaintenanceModal, setShowAddMaintenanceModal] = useState(false);
-  const [deleteEquipmentId, setDeleteEquipmentId] = useState<string | null>(null);
+  const [deleteEquipementId, setDeleteEquipementId] = useState<string | null>(null);
   const [deleteMaintenanceId, setDeleteMaintenanceId] = useState<string | null>(null);
 
-  const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterCriticality, setFilterCriticality] = useState<string>("all");
-  const [filterLocation, setFilterLocation] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterStatut, setFilterStatut] = useState<string>("all");
+  const [filterLocalisation, setFilterLocalisation] = useState<string>("all");
 
-  const [newEquipment, setNewEquipment] = useState<Partial<EquipmentInsert>>({
-    name: "",
-    category: "Autre",
-    status: "Opérationnel",
-    criticality: "Standard",
+  const [newEquipement, setNewEquipement] = useState<Partial<EquipementInsert>>({
+    nom: "",
+    type: "AUTRE",
+    statut: "CONFORME",
   });
 
   const [newMaintenance, setNewMaintenance] = useState<Partial<MaintenanceInsert>>({
-    equipment_id: "",
-    type: "Préventive",
-    frequency: "Annuelle",
-    next_due_at: "",
+    equipement_id: "",
+    type: "PREVENTIVE",
+    statut: "PLANIFIEE",
+    date_planifiee: "",
   });
 
   // Calculate KPIs
@@ -135,20 +136,26 @@ export function TabEquipements() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const operational = equipments.filter((e) => e.status === "Opérationnel");
-    const conformRate = equipments.length > 0 ? (operational.length / equipments.length) * 100 : 0;
+    const conformes = equipements.filter((e) => e.statut === "CONFORME");
+    const conformRate = equipements.length > 0 ? (conformes.length / equipements.length) * 100 : 0;
 
-    const criticalEquipments = equipments.filter((e) => e.criticality === "Critique");
+    const nonConformes = equipements.filter(
+      (e) => e.statut === "NON_CONFORME" || e.statut === "HORS_SERVICE"
+    );
 
     const overdueMaintenance = maintenances.filter((m) => {
-      const dueDate = new Date(m.next_due_at);
-      return dueDate < today && m.status !== "Réalisée";
+      if (!m.date_planifiee) return false;
+      const dueDate = new Date(m.date_planifiee);
+      return dueDate < today && isMaintenancePending(m.statut);
     });
 
-    const calibrations = maintenances.filter((m) => m.type === "Étalonnage");
+    const calibrations = maintenances.filter(
+      (m) => m.type === "ETALONNAGE" || m.type === "METROLOGIE"
+    );
     const calibrationsUpToDate = calibrations.filter((m) => {
-      const dueDate = new Date(m.next_due_at);
-      return dueDate >= today || m.status === "Réalisée";
+      if (m.statut === "REALISEE") return true;
+      if (!m.date_planifiee) return false;
+      return new Date(m.date_planifiee) >= today;
     });
     const calibrationRate =
       calibrations.length > 0 ? (calibrationsUpToDate.length / calibrations.length) * 100 : 0;
@@ -156,38 +163,35 @@ export function TabEquipements() {
     return {
       conformRate: Math.round(conformRate),
       maintenanceDue: overdueMaintenance.length,
-      criticalCount: criticalEquipments.length,
+      nonConformesCount: nonConformes.length,
       calibrationRate: Math.round(calibrationRate),
       overdueList: overdueMaintenance,
     };
-  }, [equipments, maintenances]);
+  }, [equipements, maintenances]);
 
-  // Filter equipments
-  const filteredEquipments = useMemo(() => {
-    return equipments.filter((e) => {
-      if (filterCategory !== "all" && e.category !== filterCategory) return false;
-      if (filterStatus !== "all" && e.status !== filterStatus) return false;
-      if (filterCriticality !== "all" && e.criticality !== filterCriticality) return false;
-      if (filterLocation !== "all" && e.location !== filterLocation) return false;
+  // Filter equipements
+  const filteredEquipements = useMemo(() => {
+    return equipements.filter((e) => {
+      if (filterType !== "all" && e.type !== filterType) return false;
+      if (filterStatut !== "all" && e.statut !== filterStatut) return false;
+      if (filterLocalisation !== "all" && e.localisation !== filterLocalisation) return false;
       return true;
     });
-  }, [equipments, filterCategory, filterStatus, filterCriticality, filterLocation]);
+  }, [equipements, filterType, filterStatut, filterLocalisation]);
 
-  // Chaîne du froid equipments
-  const coldChainEquipments = useMemo(() => {
-    return equipments.filter(
-      (e) => e.category === "Groupe froid" || e.category === "Sonde température"
-    );
-  }, [equipments]);
+  // Chaîne du froid : équipements de conservation
+  const coldChainEquipements = useMemo(() => {
+    return equipements.filter((e) => e.type === "CONSERVATION");
+  }, [equipements]);
 
-  // Equipment lookup map
-  const equipmentMap = useMemo(() => {
-    const map: Record<string, Equipment> = {};
-    equipments.forEach((e) => {
+  // Equipement lookup map
+  const equipementMap = useMemo(() => {
+    const map: Record<string, Equipement> = {};
+    equipements.forEach((e) => {
       map[e.id] = e;
     });
     return map;
-  }, [equipments]);
+  }, [equipements]);
 
   // Maintenances with overdue highlighting
   const maintenancesWithStatus = useMemo(() => {
@@ -195,53 +199,58 @@ export function TabEquipements() {
     today.setHours(0, 0, 0, 0);
 
     return maintenances.map((m) => {
-      const dueDate = new Date(m.next_due_at);
-      const isOverdue = dueDate < today && m.status !== "Réalisée";
+      const isOverdue =
+        !!m.date_planifiee &&
+        new Date(m.date_planifiee) < today &&
+        isMaintenancePending(m.statut);
       return { ...m, isOverdue };
     });
   }, [maintenances]);
 
-  // Chart data: maintenances by month
+  // Chart data: maintenances by month (par type)
   const maintenancesByMonth = useMemo(() => {
-    const monthlyData: Record<
-      string,
-      { month: string; Préventive: number; Curative: number; Étalonnage: number }
-    > = {};
+    const monthlyData: Record<string, Record<string, string | number>> = {};
 
     maintenances.forEach((m) => {
-      const month = m.last_done_at ? m.last_done_at.substring(0, 7) : m.created_at.substring(0, 7);
+      const refDate = m.date_realisee || m.date_planifiee || m.created_at;
+      if (!refDate) return;
+      const month = refDate.substring(0, 7);
       if (!monthlyData[month]) {
-        monthlyData[month] = { month, Préventive: 0, Curative: 0, Étalonnage: 0 };
+        monthlyData[month] = { month };
+        MAINTENANCE_TYPE_OPTIONS.forEach((o) => {
+          monthlyData[month][o.label] = 0;
+        });
       }
-      if (m.type === "Préventive") monthlyData[month].Préventive += 1;
-      if (m.type === "Curative") monthlyData[month].Curative += 1;
-      if (m.type === "Étalonnage") monthlyData[month].Étalonnage += 1;
+      const lbl = labelFor(MAINTENANCE_TYPE_OPTIONS, m.type);
+      monthlyData[month][lbl] = (Number(monthlyData[month][lbl]) || 0) + 1;
     });
 
-    return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
+    return Object.values(monthlyData).sort((a, b) =>
+      String(a.month).localeCompare(String(b.month))
+    );
   }, [maintenances]);
 
-  // Chart data: equipments by category
-  const equipmentsByCategory = useMemo(() => {
+  // Chart data: equipements by type
+  const equipementsByType = useMemo(() => {
     const counts: Record<string, number> = {};
-    equipments.forEach((e) => {
-      counts[e.category] = (counts[e.category] || 0) + 1;
+    equipements.forEach((e) => {
+      const lbl = labelFor(EQUIPEMENT_TYPE_OPTIONS, e.type);
+      counts[lbl] = (counts[lbl] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [equipments]);
+  }, [equipements]);
 
-  const handleAddEquipment = async () => {
+  const handleAddEquipement = async () => {
     try {
-      await createEquipment(newEquipment as EquipmentInsert);
-      setShowAddEquipmentModal(false);
-      setNewEquipment({
-        name: "",
-        category: "Autre",
-        status: "Opérationnel",
-        criticality: "Standard",
+      await createEquipement(newEquipement as EquipementInsert);
+      setShowAddEquipementModal(false);
+      setNewEquipement({
+        nom: "",
+        type: "AUTRE",
+        statut: "CONFORME",
       });
     } catch (error) {
-      console.error("Error creating equipment:", error);
+      console.error("Error creating equipement:", error);
     }
   };
 
@@ -250,23 +259,23 @@ export function TabEquipements() {
       await createMaintenance(newMaintenance as MaintenanceInsert);
       setShowAddMaintenanceModal(false);
       setNewMaintenance({
-        equipment_id: "",
-        type: "Préventive",
-        frequency: "Annuelle",
-        next_due_at: "",
+        equipement_id: "",
+        type: "PREVENTIVE",
+        statut: "PLANIFIEE",
+        date_planifiee: "",
       });
     } catch (error) {
       console.error("Error creating maintenance:", error);
     }
   };
 
-  const handleDeleteEquipment = async () => {
-    if (!deleteEquipmentId) return;
+  const handleDeleteEquipement = async () => {
+    if (!deleteEquipementId) return;
     try {
-      await removeEquipment(deleteEquipmentId);
-      setDeleteEquipmentId(null);
+      await removeEquipement(deleteEquipementId);
+      setDeleteEquipementId(null);
     } catch (error) {
-      console.error("Error deleting equipment:", error);
+      console.error("Error deleting equipement:", error);
     }
   };
 
@@ -280,111 +289,110 @@ export function TabEquipements() {
     }
   };
 
-  const equipmentColumns: ColumnDef<Equipment>[] = [
+  const equipementColumns: ColumnDef<Equipement>[] = [
     {
-      key: "name",
+      key: "nom",
       label: "Nom",
       render: (eq) => (
         <EditableCell
-          value={eq.name}
+          value={eq.nom}
           type="text"
           onSave={async (value) => {
-            await updateEquipment(eq.id, { name: String(value) });
+            await updateEquipement(eq.id, { nom: String(value) });
           }}
         />
       ),
     },
     {
-      key: "category",
-      label: "Catégorie",
+      key: "type",
+      label: "Type",
       render: (eq) => (
         <EditableCell
-          value={eq.category}
+          value={eq.type || ""}
           type="select"
-          options={EQUIPMENT_CATEGORIES.map((c) => ({ value: c, label: c }))}
+          options={EQUIPEMENT_TYPE_OPTIONS}
           onSave={async (value) => {
-            await updateEquipment(eq.id, { category: String(value) });
+            await updateEquipement(eq.id, { type: String(value) });
           }}
         />
       ),
     },
     {
-      key: "brand_model",
-      label: "Marque / Modèle",
+      key: "fournisseur",
+      label: "Fournisseur",
       render: (eq) => (
         <EditableCell
-          value={eq.brand_model || ""}
+          value={eq.fournisseur || ""}
           type="text"
           onSave={async (value) => {
-            await updateEquipment(eq.id, { brand_model: String(value) });
+            await updateEquipement(eq.id, { fournisseur: String(value) || null });
           }}
         />
       ),
     },
     {
-      key: "serial_no",
+      key: "numero_serie",
       label: "N° série",
       render: (eq) => (
         <EditableCell
-          value={eq.serial_no || ""}
+          value={eq.numero_serie || ""}
           type="text"
           onSave={async (value) => {
-            await updateEquipment(eq.id, { serial_no: String(value) });
+            await updateEquipement(eq.id, { numero_serie: String(value) || null });
           }}
         />
       ),
     },
     {
-      key: "location",
+      key: "localisation",
       label: "Localisation",
       render: (eq) => (
         <EditableCell
-          value={eq.location || ""}
+          value={eq.localisation || ""}
           type="select"
           options={LOCATIONS.map((l) => ({ value: l, label: l }))}
           onSave={async (value) => {
-            await updateEquipment(eq.id, { location: String(value) });
+            await updateEquipement(eq.id, { localisation: String(value) || null });
           }}
         />
       ),
     },
     {
-      key: "commissioned_at",
-      label: "Mise en service",
+      key: "date_prochain_etalonnage",
+      label: "Prochain étalonnage",
       render: (eq) => (
         <EditableCell
-          value={eq.commissioned_at || ""}
+          value={eq.date_prochain_etalonnage || ""}
           type="date"
           onSave={async (value) => {
-            await updateEquipment(eq.id, { commissioned_at: String(value) });
+            await updateEquipement(eq.id, { date_prochain_etalonnage: String(value) || null });
           }}
         />
       ),
     },
     {
-      key: "status",
+      key: "date_prochaine_maintenance",
+      label: "Prochaine maintenance",
+      render: (eq) => (
+        <EditableCell
+          value={eq.date_prochaine_maintenance || ""}
+          type="date"
+          onSave={async (value) => {
+            await updateEquipement(eq.id, { date_prochaine_maintenance: String(value) || null });
+          }}
+        />
+      ),
+    },
+    {
+      key: "statut",
       label: "Statut",
       render: (eq) => (
         <EditableCell
-          value={eq.status}
+          value={eq.statut}
           type="select"
-          options={EQUIPMENT_STATUSES.map((s) => ({ value: s, label: s }))}
+          options={EQUIPEMENT_STATUT_OPTIONS}
           onSave={async (value) => {
-            await updateEquipment(eq.id, { status: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "criticality",
-      label: "Criticité",
-      render: (eq) => (
-        <EditableCell
-          value={eq.criticality}
-          type="select"
-          options={CRITICALITIES.map((c) => ({ value: c, label: c }))}
-          onSave={async (value) => {
-            await updateEquipment(eq.id, { criticality: String(value) });
+            await updateEquipement(eq.id, { statut: String(value) });
           }}
         />
       ),
@@ -394,7 +402,7 @@ export function TabEquipements() {
       label: "",
       render: (eq) => (
         <button
-          onClick={() => setDeleteEquipmentId(eq.id)}
+          onClick={() => setDeleteEquipementId(eq.id)}
           className="p-1.5 text-mut hover:text-red transition-colors"
           title="Supprimer"
         >
@@ -406,21 +414,18 @@ export function TabEquipements() {
 
   const maintenanceColumns: ColumnDef<Maintenance & { isOverdue?: boolean }>[] = [
     {
-      key: "equipment_id",
+      key: "equipement_id",
       label: "Équipement",
-      render: (m) => {
-        const equipment = equipmentMap[m.equipment_id];
-        return (
-          <EditableCell
-            value={m.equipment_id}
-            type="select"
-            options={equipments.map((e) => ({ value: e.id, label: e.name }))}
-            onSave={async (value) => {
-              await updateMaintenance(m.id, { equipment_id: String(value) });
-            }}
-          />
-        );
-      },
+      render: (m) => (
+        <EditableCell
+          value={m.equipement_id || ""}
+          type="select"
+          options={equipements.map((e) => ({ value: e.id, label: e.nom }))}
+          onSave={async (value) => {
+            await updateMaintenance(m.id, { equipement_id: String(value) || null });
+          }}
+        />
+      ),
     },
     {
       key: "type",
@@ -429,7 +434,7 @@ export function TabEquipements() {
         <EditableCell
           value={m.type}
           type="select"
-          options={MAINTENANCE_TYPES.map((t) => ({ value: t, label: t }))}
+          options={MAINTENANCE_TYPE_OPTIONS}
           onSave={async (value) => {
             await updateMaintenance(m.id, { type: String(value) });
           }}
@@ -437,80 +442,94 @@ export function TabEquipements() {
       ),
     },
     {
-      key: "frequency",
-      label: "Fréquence",
+      key: "statut",
+      label: "Statut",
       render: (m) => (
         <EditableCell
-          value={m.frequency || ""}
+          value={m.statut}
           type="select"
-          options={FREQUENCIES.map((f) => ({ value: f, label: f }))}
+          options={MAINTENANCE_STATUT_OPTIONS}
           onSave={async (value) => {
-            await updateMaintenance(m.id, { frequency: String(value) });
+            await updateMaintenance(m.id, { statut: String(value) });
           }}
         />
       ),
     },
     {
-      key: "last_done_at",
-      label: "Dernière réalisation",
+      key: "date_planifiee",
+      label: "Date planifiée",
       render: (m) => (
         <EditableCell
-          value={m.last_done_at || ""}
+          value={m.date_planifiee || ""}
           type="date"
           onSave={async (value) => {
-            await updateMaintenance(m.id, { last_done_at: String(value) });
+            await updateMaintenance(m.id, { date_planifiee: String(value) || null });
           }}
         />
       ),
     },
     {
-      key: "next_due_at",
-      label: "Prochaine échéance",
+      key: "date_realisee",
+      label: "Date réalisée",
       render: (m) => (
         <EditableCell
-          value={m.next_due_at}
+          value={m.date_realisee || ""}
           type="date"
           onSave={async (value) => {
-            await updateMaintenance(m.id, { next_due_at: String(value) });
+            await updateMaintenance(m.id, { date_realisee: String(value) || null });
           }}
         />
       ),
     },
     {
-      key: "provider",
+      key: "prestataire",
       label: "Prestataire",
       render: (m) => (
         <EditableCell
-          value={m.provider || ""}
+          value={m.prestataire || ""}
           type="text"
           onSave={async (value) => {
-            await updateMaintenance(m.id, { provider: String(value) });
+            await updateMaintenance(m.id, { prestataire: String(value) || null });
           }}
         />
       ),
     },
     {
-      key: "result",
-      label: "Résultat",
+      key: "resultats",
+      label: "Résultats",
       render: (m) => (
         <EditableCell
-          value={m.result || ""}
+          value={m.resultats || ""}
           type="text"
           onSave={async (value) => {
-            await updateMaintenance(m.id, { result: String(value) });
+            await updateMaintenance(m.id, { resultats: String(value) || null });
           }}
         />
       ),
     },
     {
-      key: "certificate_ref",
-      label: "Référence certificat",
+      key: "conforme",
+      label: "Conforme",
       render: (m) => (
         <EditableCell
-          value={m.certificate_ref || ""}
+          value={m.conforme === null ? "" : String(m.conforme)}
+          type="select"
+          options={BOOLEAN_OPTIONS}
+          onSave={async (value) => {
+            await updateMaintenance(m.id, { conforme: value === "true" });
+          }}
+        />
+      ),
+    },
+    {
+      key: "rapport_url",
+      label: "Rapport",
+      render: (m) => (
+        <EditableCell
+          value={m.rapport_url || ""}
           type="text"
           onSave={async (value) => {
-            await updateMaintenance(m.id, { certificate_ref: String(value) });
+            await updateMaintenance(m.id, { rapport_url: String(value) || null });
           }}
         />
       ),
@@ -530,37 +549,37 @@ export function TabEquipements() {
     },
   ];
 
-  const coldChainColumns: ColumnDef<Equipment>[] = [
+  const coldChainColumns: ColumnDef<Equipement>[] = [
     {
-      key: "name",
+      key: "nom",
       label: "Nom",
-      render: (eq) => <span className="text-sm text-text">{eq.name}</span>,
+      render: (eq) => <span className="text-sm text-text">{eq.nom}</span>,
     },
     {
-      key: "category",
-      label: "Catégorie",
-      render: (eq) => <Badge variant="plan">{eq.category}</Badge>,
+      key: "type",
+      label: "Type",
+      render: (eq) => <Badge variant="plan">{labelFor(EQUIPEMENT_TYPE_OPTIONS, eq.type)}</Badge>,
     },
     {
-      key: "location",
+      key: "localisation",
       label: "Localisation",
-      render: (eq) => <span className="text-sm text-sec">{eq.location || "-"}</span>,
+      render: (eq) => <span className="text-sm text-sec">{eq.localisation || "-"}</span>,
     },
     {
-      key: "status",
+      key: "statut",
       label: "Statut",
       render: (eq) => {
         let variant: "ok" | "wip" | "crit" | "plan" = "plan";
-        if (eq.status === "Opérationnel") variant = "ok";
-        else if (eq.status === "En maintenance") variant = "wip";
-        else if (eq.status === "En panne" || eq.status === "Décommissionné") variant = "crit";
+        if (eq.statut === "CONFORME") variant = "ok";
+        else if (eq.statut === "A_VERIFIER") variant = "wip";
+        else if (eq.statut === "NON_CONFORME" || eq.statut === "HORS_SERVICE") variant = "crit";
 
-        return <Badge variant={variant}>{eq.status}</Badge>;
+        return <Badge variant={variant}>{labelFor(EQUIPEMENT_STATUT_OPTIONS, eq.statut)}</Badge>;
       },
     },
   ];
 
-  if (loadingEquipments || loadingMaintenances) {
+  if (loadingEquipements || loadingMaintenances) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-mut">Chargement...</p>
@@ -576,7 +595,7 @@ export function TabEquipements() {
           icon={<ToolIcon size={20} />}
           label="Équipements conformes"
           value={`${kpis.conformRate}%`}
-          subtitle="Opérationnels / Total"
+          subtitle="Conformes / Total"
         />
         <KpiCard
           icon={<ToolIcon size={20} />}
@@ -587,9 +606,9 @@ export function TabEquipements() {
         />
         <KpiCard
           icon={<ToolIcon size={20} />}
-          label="Critiques"
-          value={kpis.criticalCount.toString()}
-          subtitle="Équipements critiques"
+          label="Non conformes"
+          value={kpis.nonConformesCount.toString()}
+          subtitle="Non conformes + hors service"
         />
         <KpiCard
           icon={<ToolIcon size={20} />}
@@ -603,12 +622,12 @@ export function TabEquipements() {
       {kpis.overdueList.length > 0 && (
         <div className="space-y-2">
           {kpis.overdueList.map((maint) => {
-            const equipment = equipmentMap[maint.equipment_id];
+            const equipement = maint.equipement_id ? equipementMap[maint.equipement_id] : undefined;
             return (
               <AlertLine
                 key={maint.id}
                 severity="red"
-                message={`Maintenance en retard — ${equipment?.name || "Équipement inconnu"} — ${maint.type} échéance ${maint.next_due_at}`}
+                message={`Maintenance en retard — ${equipement?.nom || "Équipement inconnu"} — ${labelFor(MAINTENANCE_TYPE_OPTIONS, maint.type)} échéance ${maint.date_planifiee}`}
                 href={`#maintenance-${maint.id}`}
               />
             );
@@ -620,53 +639,40 @@ export function TabEquipements() {
       <div className="bg-card border border-brd rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-text">Registre Équipements</h2>
-          <AddButton onClick={() => setShowAddEquipmentModal(true)} />
+          <AddButton onClick={() => setShowAddEquipementModal(true)} />
         </div>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 items-center mb-4">
           <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
             className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
-            <option value="all">Toutes catégories</option>
-            {EQUIPMENT_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
+            <option value="all">Tous types</option>
+            {EQUIPEMENT_TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
               </option>
             ))}
           </select>
 
           <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            value={filterStatut}
+            onChange={(e) => setFilterStatut(e.target.value)}
             className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Tous statuts</option>
-            {EQUIPMENT_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
+            {EQUIPEMENT_STATUT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
               </option>
             ))}
           </select>
 
           <select
-            value={filterCriticality}
-            onChange={(e) => setFilterCriticality(e.target.value)}
-            className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
-          >
-            <option value="all">Toutes criticités</option>
-            {CRITICALITIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filterLocation}
-            onChange={(e) => setFilterLocation(e.target.value)}
+            value={filterLocalisation}
+            onChange={(e) => setFilterLocalisation(e.target.value)}
             className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
           >
             <option value="all">Toutes localisations</option>
@@ -678,7 +684,7 @@ export function TabEquipements() {
           </select>
         </div>
 
-        <DataTable columns={equipmentColumns} data={filteredEquipments} />
+        <DataTable columns={equipementColumns} data={filteredEquipements} />
       </div>
 
       {/* Section: Calendrier Maintenance */}
@@ -697,7 +703,7 @@ export function TabEquipements() {
       {/* Section: Chaîne du froid */}
       <div className="bg-card border border-brd rounded-xl p-6">
         <h2 className="text-lg font-semibold text-text mb-4">Chaîne du froid</h2>
-        <DataTable columns={coldChainColumns} data={coldChainEquipments} />
+        <DataTable columns={coldChainColumns} data={coldChainEquipements} />
       </div>
 
       {/* Charts Section */}
@@ -720,22 +726,22 @@ export function TabEquipements() {
                 }}
               />
               <Legend />
-              <Bar dataKey="Préventive" fill={THEME_COLORS.grn} />
-              <Bar dataKey="Curative" fill={THEME_COLORS.red} />
-              <Bar dataKey="Étalonnage" fill={THEME_COLORS.amb} />
+              {MAINTENANCE_TYPE_OPTIONS.map((o, i) => (
+                <Bar key={o.value} dataKey={o.label} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+              ))}
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Équipements par catégorie */}
+        {/* Équipements par type */}
         <div className="bg-card border border-brd rounded-xl p-6">
           <h3 className="text-sm font-semibold text-text mb-4">
-            Équipements par catégorie
+            Équipements par type
           </h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
-                data={equipmentsByCategory}
+                data={equipementsByType}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -744,7 +750,7 @@ export function TabEquipements() {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {equipmentsByCategory.map((entry, index) => (
+                {equipementsByType.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                 ))}
               </Pie>
@@ -754,12 +760,12 @@ export function TabEquipements() {
         </div>
       </div>
 
-      {/* Add Equipment Modal */}
-      {showAddEquipmentModal && (
+      {/* Add Equipement Modal */}
+      {showAddEquipementModal && (
         <Modal
-          isOpen={showAddEquipmentModal}
+          isOpen={showAddEquipementModal}
           title="Nouvel Équipement"
-          onClose={() => setShowAddEquipmentModal(false)}
+          onClose={() => setShowAddEquipementModal(false)}
         >
           <div className="space-y-4">
             <div>
@@ -768,8 +774,8 @@ export function TabEquipements() {
               </label>
               <input
                 type="text"
-                value={newEquipment.name}
-                onChange={(e) => setNewEquipment({ ...newEquipment, name: e.target.value })}
+                value={newEquipement.nom}
+                onChange={(e) => setNewEquipement({ ...newEquipement, nom: e.target.value })}
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Nom de l'équipement"
               />
@@ -778,16 +784,16 @@ export function TabEquipements() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Catégorie
+                  Type
                 </label>
                 <select
-                  value={newEquipment.category}
-                  onChange={(e) => setNewEquipment({ ...newEquipment, category: e.target.value })}
+                  value={newEquipement.type || "AUTRE"}
+                  onChange={(e) => setNewEquipement({ ...newEquipement, type: e.target.value })}
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
-                  {EQUIPMENT_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                  {EQUIPEMENT_TYPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
                     </option>
                   ))}
                 </select>
@@ -795,16 +801,16 @@ export function TabEquipements() {
 
               <div>
                 <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Criticité
+                  Statut
                 </label>
                 <select
-                  value={newEquipment.criticality}
-                  onChange={(e) => setNewEquipment({ ...newEquipment, criticality: e.target.value })}
+                  value={newEquipement.statut || "CONFORME"}
+                  onChange={(e) => setNewEquipement({ ...newEquipement, statut: e.target.value })}
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
-                  {CRITICALITIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                  {EQUIPEMENT_STATUT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
                     </option>
                   ))}
                 </select>
@@ -814,14 +820,14 @@ export function TabEquipements() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Marque / Modèle
+                  Fournisseur
                 </label>
                 <input
                   type="text"
-                  value={newEquipment.brand_model || ""}
-                  onChange={(e) => setNewEquipment({ ...newEquipment, brand_model: e.target.value })}
+                  value={newEquipement.fournisseur || ""}
+                  onChange={(e) => setNewEquipement({ ...newEquipement, fournisseur: e.target.value })}
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                  placeholder="Fabricant et modèle"
+                  placeholder="Fournisseur de l'équipement"
                 />
               </div>
 
@@ -831,42 +837,56 @@ export function TabEquipements() {
                 </label>
                 <input
                   type="text"
-                  value={newEquipment.serial_no || ""}
-                  onChange={(e) => setNewEquipment({ ...newEquipment, serial_no: e.target.value })}
+                  value={newEquipement.numero_serie || ""}
+                  onChange={(e) => setNewEquipement({ ...newEquipement, numero_serie: e.target.value })}
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                   placeholder="Numéro de série"
                 />
               </div>
             </div>
 
+            <div>
+              <label className="block text-[13px] font-semibold text-sec mb-2">
+                Localisation
+              </label>
+              <select
+                value={newEquipement.localisation || ""}
+                onChange={(e) => setNewEquipement({ ...newEquipement, localisation: e.target.value })}
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+              >
+                <option value="">Sélectionner</option>
+                {LOCATIONS.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Localisation
+                  Prochain étalonnage
                 </label>
-                <select
-                  value={newEquipment.location || ""}
-                  onChange={(e) => setNewEquipment({ ...newEquipment, location: e.target.value })}
+                <input
+                  type="date"
+                  value={newEquipement.date_prochain_etalonnage || ""}
+                  onChange={(e) =>
+                    setNewEquipement({ ...newEquipement, date_prochain_etalonnage: e.target.value })
+                  }
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                >
-                  <option value="">Sélectionner</option>
-                  {LOCATIONS.map((l) => (
-                    <option key={l} value={l}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
                 <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Mise en service
+                  Prochaine maintenance
                 </label>
                 <input
                   type="date"
-                  value={newEquipment.commissioned_at || ""}
+                  value={newEquipement.date_prochaine_maintenance || ""}
                   onChange={(e) =>
-                    setNewEquipment({ ...newEquipment, commissioned_at: e.target.value })
+                    setNewEquipement({ ...newEquipement, date_prochaine_maintenance: e.target.value })
                   }
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 />
@@ -875,31 +895,27 @@ export function TabEquipements() {
 
             <div>
               <label className="block text-[13px] font-semibold text-sec mb-2">
-                Statut
+                Notes
               </label>
-              <select
-                value={newEquipment.status}
-                onChange={(e) => setNewEquipment({ ...newEquipment, status: e.target.value })}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-              >
-                {EQUIPMENT_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <textarea
+                value={newEquipement.notes || ""}
+                onChange={(e) => setNewEquipement({ ...newEquipement, notes: e.target.value })}
+                rows={2}
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
+                placeholder="Notes complémentaires..."
+              />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <button
-                onClick={() => setShowAddEquipmentModal(false)}
+                onClick={() => setShowAddEquipementModal(false)}
                 className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
               >
                 Annuler
               </button>
               <button
-                onClick={handleAddEquipment}
-                disabled={!newEquipment.name}
+                onClick={handleAddEquipement}
+                disabled={!newEquipement.nom}
                 className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
@@ -922,14 +938,14 @@ export function TabEquipements() {
                 Équipement *
               </label>
               <select
-                value={newMaintenance.equipment_id}
-                onChange={(e) => setNewMaintenance({ ...newMaintenance, equipment_id: e.target.value })}
+                value={newMaintenance.equipement_id || ""}
+                onChange={(e) => setNewMaintenance({ ...newMaintenance, equipement_id: e.target.value })}
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
               >
                 <option value="">Sélectionner un équipement</option>
-                {equipments.map((e) => (
+                {equipements.map((e) => (
                   <option key={e.id} value={e.id}>
-                    {e.name}
+                    {e.nom}
                   </option>
                 ))}
               </select>
@@ -941,13 +957,13 @@ export function TabEquipements() {
                   Type
                 </label>
                 <select
-                  value={newMaintenance.type}
+                  value={newMaintenance.type || "PREVENTIVE"}
                   onChange={(e) => setNewMaintenance({ ...newMaintenance, type: e.target.value })}
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
-                  {MAINTENANCE_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
+                  {MAINTENANCE_TYPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
                     </option>
                   ))}
                 </select>
@@ -955,16 +971,16 @@ export function TabEquipements() {
 
               <div>
                 <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Fréquence
+                  Statut
                 </label>
                 <select
-                  value={newMaintenance.frequency || ""}
-                  onChange={(e) => setNewMaintenance({ ...newMaintenance, frequency: e.target.value })}
+                  value={newMaintenance.statut || "PLANIFIEE"}
+                  onChange={(e) => setNewMaintenance({ ...newMaintenance, statut: e.target.value })}
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 >
-                  {FREQUENCIES.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
+                  {MAINTENANCE_STATUT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
                     </option>
                   ))}
                 </select>
@@ -974,13 +990,13 @@ export function TabEquipements() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Dernière réalisation
+                  Date planifiée *
                 </label>
                 <input
                   type="date"
-                  value={newMaintenance.last_done_at || ""}
+                  value={newMaintenance.date_planifiee || ""}
                   onChange={(e) =>
-                    setNewMaintenance({ ...newMaintenance, last_done_at: e.target.value })
+                    setNewMaintenance({ ...newMaintenance, date_planifiee: e.target.value })
                   }
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 />
@@ -988,13 +1004,13 @@ export function TabEquipements() {
 
               <div>
                 <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Prochaine échéance *
+                  Date réalisée
                 </label>
                 <input
                   type="date"
-                  value={newMaintenance.next_due_at}
+                  value={newMaintenance.date_realisee || ""}
                   onChange={(e) =>
-                    setNewMaintenance({ ...newMaintenance, next_due_at: e.target.value })
+                    setNewMaintenance({ ...newMaintenance, date_realisee: e.target.value })
                   }
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 />
@@ -1007,8 +1023,8 @@ export function TabEquipements() {
               </label>
               <input
                 type="text"
-                value={newMaintenance.provider || ""}
-                onChange={(e) => setNewMaintenance({ ...newMaintenance, provider: e.target.value })}
+                value={newMaintenance.prestataire || ""}
+                onChange={(e) => setNewMaintenance({ ...newMaintenance, prestataire: e.target.value })}
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Nom du prestataire"
               />
@@ -1016,29 +1032,42 @@ export function TabEquipements() {
 
             <div>
               <label className="block text-[13px] font-semibold text-sec mb-2">
-                Résultat
+                Description
               </label>
               <input
                 type="text"
-                value={newMaintenance.result || ""}
-                onChange={(e) => setNewMaintenance({ ...newMaintenance, result: e.target.value })}
+                value={newMaintenance.description || ""}
+                onChange={(e) => setNewMaintenance({ ...newMaintenance, description: e.target.value })}
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                placeholder="Résultat de la maintenance"
+                placeholder="Description de l'intervention"
               />
             </div>
 
             <div>
               <label className="block text-[13px] font-semibold text-sec mb-2">
-                Référence certificat
+                Résultats
               </label>
               <input
                 type="text"
-                value={newMaintenance.certificate_ref || ""}
+                value={newMaintenance.resultats || ""}
+                onChange={(e) => setNewMaintenance({ ...newMaintenance, resultats: e.target.value })}
+                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                placeholder="Résultats de la maintenance"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[13px] font-semibold text-sec mb-2">
+                Rapport (URL)
+              </label>
+              <input
+                type="text"
+                value={newMaintenance.rapport_url || ""}
                 onChange={(e) =>
-                  setNewMaintenance({ ...newMaintenance, certificate_ref: e.target.value })
+                  setNewMaintenance({ ...newMaintenance, rapport_url: e.target.value })
                 }
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                placeholder="Numéro certificat"
+                placeholder="Lien vers le rapport ou certificat"
               />
             </div>
 
@@ -1051,7 +1080,7 @@ export function TabEquipements() {
               </button>
               <button
                 onClick={handleAddMaintenance}
-                disabled={!newMaintenance.equipment_id || !newMaintenance.next_due_at}
+                disabled={!newMaintenance.equipement_id || !newMaintenance.date_planifiee}
                 className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
@@ -1061,13 +1090,13 @@ export function TabEquipements() {
         </Modal>
       )}
 
-      {/* Delete Equipment Confirmation */}
-      {deleteEquipmentId && (
+      {/* Delete Equipement Confirmation */}
+      {deleteEquipementId && (
         <ConfirmDelete
-          isOpen={!!deleteEquipmentId}
+          isOpen={!!deleteEquipementId}
           itemName="cet équipement"
-          onConfirm={handleDeleteEquipment}
-          onCancel={() => setDeleteEquipmentId(null)}
+          onConfirm={handleDeleteEquipement}
+          onCancel={() => setDeleteEquipementId(null)}
         />
       )}
 

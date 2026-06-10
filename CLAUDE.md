@@ -235,6 +235,8 @@ Si une clé apparaît dans un commit, faire la rotation immédiatement et purger
 - [ ] Corriger le Framework Preset "vite" → "Next.js" dans les settings Vercel (cosmétique).
 - [ ] Onglets manquants pour les nouvelles tables prod : traçabilités (`tracabilites_suivi`), chaîne du froid (`cold_chain_*`), projets/plan stratégique — à prioriser avec Emmanuel.
 - [ ] Rétro-documenter les 14 tables créées hors migration (voir `supabase/migrations/README.md`).
+- [ ] Migration `processus.responsable` : l'onglet Administration stocke le nom du responsable dans `created_by` (hack hérité) — créer une colonne dédiée.
+- [ ] Ajouter `eslint.config.mjs` (ESLint 9 installé sans config flat → `next lint` inopérant).
 
 ---
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useSupabaseCrud } from "@/lib/hooks/useSupabaseCrud";
-import type { Audit, AuditFinding, Domain, AuditInsert, AuditFindingInsert, Capa } from "@/lib/database.types";
+import type { Audit, AuditInsert, AuditFinding, AuditFindingInsert, Capa, Processus } from "@/lib/db-rows";
 import {
   KpiCard,
   Badge,
@@ -25,17 +25,30 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const AUDIT_TYPES = [
-  "Audit interne",
-  "Audit processus",
-  "Audit système",
-  "Audit fournisseur",
-  "Audit client",
-] as const;
+/* ------------------------------------------------------------------ */
+/*  Enum value <-> display label mapping (valeurs DB en UPPERCASE)     */
+/* ------------------------------------------------------------------ */
+const AUDIT_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "INTERNE", label: "Interne" },
+  { value: "EXTERNE", label: "Externe" },
+  { value: "FOURNISSEUR", label: "Fournisseur" },
+];
 
-const STATUSES = ["Planifié", "En cours", "Réalisé", "Reporté", "Annulé"] as const;
+const STATUT_OPTIONS: { value: string; label: string }[] = [
+  { value: "PLANIFIE", label: "Planifié" },
+  { value: "EN_COURS", label: "En cours" },
+  { value: "REALISE", label: "Réalisé" },
+  { value: "ANNULE", label: "Annulé" },
+];
 
-const FINDING_TYPES = ["Majeur", "Mineur", "Observation", "Point fort"] as const;
+const FINDING_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "MAJEUR", label: "Majeur" },
+  { value: "MINEUR", label: "Mineur" },
+  { value: "OBSERVATION", label: "Observation" },
+];
+
+const labelFor = (opts: { value: string; label: string }[], v: string | null | undefined): string =>
+  opts.find((o) => o.value === v)?.label ?? String(v ?? "");
 
 const THEME_COLORS = {
   primary: "var(--accent)",
@@ -45,7 +58,7 @@ const THEME_COLORS = {
   muted: "var(--mut)",
 };
 
-const CHART_COLORS = ["#00FF88", "#FFB800", "#FF4444", "#00CCFF"];
+const CHART_COLORS = ["#FF4444", "#FFB800", "#00CCFF"];
 
 /* ------------------------------------------------------------------ */
 /*  Shared style constants for form fields                            */
@@ -69,19 +82,19 @@ const filterCls =
 /* ================================================================== */
 export function TabAudits() {
   /* ---- data hooks ------------------------------------------------ */
-  const { data: audits, loading: loadingAudits, create, update, remove } = useSupabaseCrud<Audit>("audits", {
-    orderBy: { column: "created_at", ascending: false },
+  const { data: audits, loading: loadingAudits, create, remove } = useSupabaseCrud<Audit>("audits", {
+    orderBy: { column: "date_planifiee", ascending: false },
   });
 
   const { data: findings, loading: loadingFindings, create: createFinding, remove: removeFinding } = useSupabaseCrud<AuditFinding>("audit_findings", {
     orderBy: { column: "created_at", ascending: false },
   });
 
-  const { data: domains, loading: loadingDomains } = useSupabaseCrud<Domain>("domains", {
-    orderBy: { column: "name", ascending: true },
+  const { data: processus, loading: loadingProcessus } = useSupabaseCrud<Processus>("processus", {
+    orderBy: { column: "nom", ascending: true },
   });
 
-  const { data: capas } = useSupabaseCrud<Capa>("capas");
+  const { data: capas } = useSupabaseCrud<Capa>("capa");
 
   /* ---- local state ----------------------------------------------- */
   const [showAddModal, setShowAddModal] = useState(false);
@@ -89,22 +102,25 @@ export function TabAudits() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expandedAudit, setExpandedAudit] = useState<string | null>(null);
   const [selectedAuditForFinding, setSelectedAuditForFinding] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterDomain, setFilterDomain] = useState<string>("all");
-  const [filterAuditor, setFilterAuditor] = useState<string>("all");
+  const [filterStatut, setFilterStatut] = useState<string>("all");
+  const [filterProcessus, setFilterProcessus] = useState<string>("all");
+  const [filterAuditeur, setFilterAuditeur] = useState<string>("all");
 
   const [newAudit, setNewAudit] = useState<Partial<AuditInsert>>({
-    type: "Audit interne",
-    status: "Planifié",
-    reference: "",
-    major_findings: 0,
-    minor_findings: 0,
-    observations: 0,
+    type: "INTERNE",
+    statut: "PLANIFIE",
+    titre: "",
+    date_planifiee: "",
+    nb_constats_majeurs: 0,
+    nb_constats_mineurs: 0,
+    nb_observations: 0,
   });
 
   const [newFinding, setNewFinding] = useState<Partial<AuditFindingInsert>>({
     audit_id: "",
-    type: "Observation",
+    code: "",
+    objet: "",
+    type: "OBSERVATION",
     description: "",
   });
 
@@ -112,21 +128,21 @@ export function TabAudits() {
   const kpis = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const auditsThisYear = audits.filter((a) => {
-      const year = a.planned_at ? new Date(a.planned_at).getFullYear() : currentYear;
+      const year = a.date_planifiee ? new Date(a.date_planifiee).getFullYear() : currentYear;
       return year === currentYear;
     });
 
-    const plannedCount = auditsThisYear.filter((a) => a.status === "Planifié" || a.status === "En cours").length;
-    const realizedCount = auditsThisYear.filter((a) => a.status === "Réalisé").length;
-    const postponedCount = auditsThisYear.filter((a) => a.status === "Reporté").length;
+    const plannedCount = auditsThisYear.filter((a) => a.statut === "PLANIFIE" || a.statut === "EN_COURS").length;
+    const realizedCount = auditsThisYear.filter((a) => a.statut === "REALISE").length;
+    const cancelledCount = auditsThisYear.filter((a) => a.statut === "ANNULE").length;
 
-    const totalScheduled = plannedCount + realizedCount + postponedCount;
+    const totalScheduled = plannedCount + realizedCount + cancelledCount;
     const realizationRate = totalScheduled > 0 ? Math.round((realizedCount / totalScheduled) * 100) : 0;
 
     return {
       planned: plannedCount,
       realized: realizedCount,
-      postponed: postponedCount,
+      cancelled: cancelledCount,
       realizationRate,
     };
   }, [audits]);
@@ -134,31 +150,31 @@ export function TabAudits() {
   /* ---- filtered list --------------------------------------------- */
   const filteredAudits = useMemo(() => {
     return audits.filter((a) => {
-      if (filterStatus !== "all" && a.status !== filterStatus) return false;
-      if (filterDomain !== "all" && a.domain_id !== filterDomain) return false;
-      if (filterAuditor !== "all" && a.auditor !== filterAuditor) return false;
+      if (filterStatut !== "all" && a.statut !== filterStatut) return false;
+      if (filterProcessus !== "all" && a.processus_id !== filterProcessus) return false;
+      if (filterAuditeur !== "all" && a.auditeur !== filterAuditeur) return false;
       return true;
     });
-  }, [audits, filterStatus, filterDomain, filterAuditor]);
+  }, [audits, filterStatut, filterProcessus, filterAuditeur]);
 
   /* ---- chart data: timeline -------------------------------------- */
   const timelineData = useMemo(() => {
-    const monthlyData: Record<string, { month: string; Planifié: number; Réalisé: number; Reporté: number }> = {};
+    const monthlyData: Record<string, { month: string; Planifié: number; Réalisé: number; Annulé: number }> = {};
 
     audits.forEach((a) => {
-      const month = a.planned_at ? a.planned_at.substring(0, 7) : "";
+      const month = a.date_planifiee ? a.date_planifiee.substring(0, 7) : "";
       if (!month) return;
 
       if (!monthlyData[month]) {
-        monthlyData[month] = { month, Planifié: 0, Réalisé: 0, Reporté: 0 };
+        monthlyData[month] = { month, Planifié: 0, Réalisé: 0, Annulé: 0 };
       }
 
-      if (a.status === "Planifié" || a.status === "En cours") {
+      if (a.statut === "PLANIFIE" || a.statut === "EN_COURS") {
         monthlyData[month].Planifié += 1;
-      } else if (a.status === "Réalisé") {
+      } else if (a.statut === "REALISE") {
         monthlyData[month].Réalisé += 1;
-      } else if (a.status === "Reporté") {
-        monthlyData[month].Reporté += 1;
+      } else if (a.statut === "ANNULE") {
+        monthlyData[month].Annulé += 1;
       }
     });
 
@@ -171,55 +187,55 @@ export function TabAudits() {
       Majeur: 0,
       Mineur: 0,
       Observation: 0,
-      "Point fort": 0,
     };
 
     findings.forEach((f) => {
-      if (counts[f.type] !== undefined) {
-        counts[f.type] += 1;
+      const lbl = labelFor(FINDING_TYPE_OPTIONS, f.type);
+      if (counts[lbl] !== undefined) {
+        counts[lbl] += 1;
       }
     });
 
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [findings]);
 
-  /* ---- chart data: audits by domain ------------------------------ */
-  const auditsByDomain = useMemo(() => {
+  /* ---- chart data: audits by processus --------------------------- */
+  const auditsByProcessus = useMemo(() => {
     const counts: Record<string, number> = {};
-    const dMap: Record<string, string> = {};
+    const pMap: Record<string, string> = {};
 
-    domains.forEach((d) => {
-      dMap[d.id] = d.name;
-      counts[d.name] = 0;
+    processus.forEach((p) => {
+      pMap[p.id] = p.nom;
+      counts[p.nom] = 0;
     });
 
     audits.forEach((a) => {
-      if (a.domain_id && dMap[a.domain_id]) {
-        counts[dMap[a.domain_id]] += 1;
+      if (a.processus_id && pMap[a.processus_id]) {
+        counts[pMap[a.processus_id]] += 1;
       }
     });
 
     return Object.entries(counts)
       .map(([name, value]) => ({ name, value }))
       .filter((item) => item.value > 0);
-  }, [audits, domains]);
+  }, [audits, processus]);
 
-  /* ---- domain lookup map ----------------------------------------- */
-  const domainMap = useMemo(() => {
+  /* ---- processus lookup map --------------------------------------- */
+  const processusMap = useMemo(() => {
     const map: Record<string, string> = {};
-    domains.forEach((d) => {
-      map[d.id] = d.name;
+    processus.forEach((p) => {
+      map[p.id] = p.nom;
     });
     return map;
-  }, [domains]);
+  }, [processus]);
 
-  /* ---- auditor list for filter ----------------------------------- */
-  const auditorList = useMemo(() => {
-    const auditors = new Set<string>();
+  /* ---- auditeur list for filter ----------------------------------- */
+  const auditeurList = useMemo(() => {
+    const auditeurs = new Set<string>();
     audits.forEach((a) => {
-      if (a.auditor) auditors.add(a.auditor);
+      if (a.auditeur) auditeurs.add(a.auditeur);
     });
-    return Array.from(auditors).sort();
+    return Array.from(auditeurs).sort();
   }, [audits]);
 
   /* ---- handlers -------------------------------------------------- */
@@ -228,12 +244,13 @@ export function TabAudits() {
       await create(newAudit as AuditInsert);
       setShowAddModal(false);
       setNewAudit({
-        type: "Audit interne",
-        status: "Planifié",
-        reference: "",
-        major_findings: 0,
-        minor_findings: 0,
-        observations: 0,
+        type: "INTERNE",
+        statut: "PLANIFIE",
+        titre: "",
+        date_planifiee: "",
+        nb_constats_majeurs: 0,
+        nb_constats_mineurs: 0,
+        nb_observations: 0,
       });
     } catch (error) {
       console.error("Error creating audit:", error);
@@ -257,7 +274,9 @@ export function TabAudits() {
       setShowFindingModal(false);
       setNewFinding({
         audit_id: "",
-        type: "Observation",
+        code: "",
+        objet: "",
+        type: "OBSERVATION",
         description: "",
       });
       setSelectedAuditForFinding(null);
@@ -278,35 +297,35 @@ export function TabAudits() {
       );
 
     const auditFindings = findings.filter((f) => f.audit_id === audit.id);
-    const domainName = audit.domain_id ? domainMap[audit.domain_id] : "Aucun domaine";
-    const plannedFr = audit.planned_at
-      ? new Date(audit.planned_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+    const processusName = audit.processus_id ? processusMap[audit.processus_id] : "Aucun processus";
+    const plannedFr = audit.date_planifiee
+      ? new Date(audit.date_planifiee).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
       : "Non planifié";
-    const createdFr = audit.created_at
-      ? new Date(audit.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+    const realizedFr = audit.date_realisee
+      ? new Date(audit.date_realisee).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
       : "—";
     const exportFr = new Date().toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
 
     const findingTone: Record<string, string> = {
-      "Majeur": "#C0392B",
-      "Mineur": "#D4860B",
-      "Observation": "#5A6373",
-      "Point fort": "#2E7D5A",
+      MAJEUR: "#C0392B",
+      MINEUR: "#D4860B",
+      OBSERVATION: "#5A6373",
     };
 
     const findingsHtml = auditFindings.length
       ? auditFindings
           .map((f) => {
             const capa = f.capa_id ? capas.find((c) => c.id === f.capa_id) : null;
-            const capaRef = capa ? `CAPA-${capa.id.substring(0, 4).toUpperCase()}` : "";
+            const capaRef = capa ? capa.reference || `CAPA-${capa.id.substring(0, 4).toUpperCase()}` : "";
             return `
               <div class="finding">
                 <div class="finding-head">
-                  <span class="tag" style="background:${findingTone[f.type] ?? "#5A6373"}">${esc(f.type)}</span>
-                  ${f.clause_ref ? `<span class="clause">Clause ${esc(f.clause_ref)}</span>` : ""}
+                  <span class="tag" style="background:${findingTone[f.type] ?? "#5A6373"}">${esc(labelFor(FINDING_TYPE_OPTIONS, f.type))}</span>
+                  <span class="clause">${esc(f.code)}</span>
+                  ${f.norme_concernee ? `<span class="clause">Norme ${esc(f.norme_concernee)}</span>` : ""}
                   ${capaRef ? `<span class="capa">Lien ${esc(capaRef)}</span>` : ""}
                 </div>
-                <p class="finding-desc">${esc(f.description)}</p>
+                <p class="finding-desc"><strong>${esc(f.objet)}</strong> — ${esc(f.description)}</p>
               </div>`;
           })
           .join("")
@@ -316,7 +335,7 @@ export function TabAudits() {
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<title>Audit ${esc(audit.reference)} — Pharma78</title>
+<title>Audit ${esc(audit.titre)} — Pharma78</title>
 <style>
   @page { size: A4; margin: 18mm 16mm; }
   * { box-sizing: border-box; }
@@ -367,25 +386,25 @@ export function TabAudits() {
     </div>
   </header>
 
-  <h1><span class="ref">${esc(audit.reference)}</span> — ${esc(audit.type)}</h1>
+  <h1><span class="ref">${esc(audit.titre)}</span> — ${esc(labelFor(AUDIT_TYPE_OPTIONS, audit.type))}</h1>
 
   <div class="grid">
-    <div><div class="lbl">Statut</div>${esc(audit.status)}</div>
-    <div><div class="lbl">Auditeur</div>${esc(audit.auditor || "—")}</div>
-    <div><div class="lbl">Domaine</div>${esc(domainName)}</div>
+    <div><div class="lbl">Statut</div>${esc(labelFor(STATUT_OPTIONS, audit.statut))}</div>
+    <div><div class="lbl">Auditeur</div>${esc(audit.auditeur || "—")}</div>
+    <div><div class="lbl">Processus</div>${esc(processusName)}</div>
     <div><div class="lbl">Date planifiée</div>${esc(plannedFr)}</div>
-    <div><div class="lbl">Créé le</div>${esc(createdFr)}</div>
-    <div><div class="lbl">Type d'audit</div>${esc(audit.type)}</div>
+    <div><div class="lbl">Date réalisée</div>${esc(realizedFr)}</div>
+    <div><div class="lbl">Type d'audit</div>${esc(labelFor(AUDIT_TYPE_OPTIONS, audit.type))}</div>
   </div>
 
-  <h2>Synthèse</h2>
-  <div class="summary">${audit.summary ? esc(audit.summary) : "<em>Aucune synthèse renseignée.</em>"}</div>
+  <h2>Notes</h2>
+  <div class="summary">${audit.notes ? esc(audit.notes) : "<em>Aucune note renseignée.</em>"}</div>
 
   <h2>Bilan des constats</h2>
   <div class="kpis">
-    <div class="kpi maj"><div class="v">${audit.major_findings ?? 0}</div><div class="l">Constats majeurs</div></div>
-    <div class="kpi min"><div class="v">${audit.minor_findings ?? 0}</div><div class="l">Constats mineurs</div></div>
-    <div class="kpi obs"><div class="v">${audit.observations ?? 0}</div><div class="l">Observations</div></div>
+    <div class="kpi maj"><div class="v">${audit.nb_constats_majeurs ?? 0}</div><div class="l">Constats majeurs</div></div>
+    <div class="kpi min"><div class="v">${audit.nb_constats_mineurs ?? 0}</div><div class="l">Constats mineurs</div></div>
+    <div class="kpi obs"><div class="v">${audit.nb_observations ?? 0}</div><div class="l">Observations</div></div>
   </div>
 
   <h2>Détail des constats (${auditFindings.length})</h2>
@@ -393,7 +412,7 @@ export function TabAudits() {
 
   <footer>
     <span>Pharma78 — Bois-d'Arcy (78) — Document interne qualité</span>
-    <span>Audit ${esc(audit.reference)}</span>
+    <span>Audit ${esc(audit.titre)}</span>
   </footer>
 
   <script>
@@ -412,16 +431,15 @@ export function TabAudits() {
     win.document.close();
   };
 
-  const getStatusBadgeVariant = (status: string): "ok" | "wip" | "plan" | "crit" => {
-    switch (status) {
-      case "Réalisé":
+  const getStatutBadgeVariant = (statut: string): "ok" | "wip" | "plan" | "crit" => {
+    switch (statut) {
+      case "REALISE":
         return "ok";
-      case "En cours":
+      case "EN_COURS":
         return "wip";
-      case "Planifié":
+      case "PLANIFIE":
         return "plan";
-      case "Reporté":
-      case "Annulé":
+      case "ANNULE":
         return "crit";
       default:
         return "plan";
@@ -430,13 +448,11 @@ export function TabAudits() {
 
   const getFindingBadgeVariant = (type: string): "ok" | "wip" | "plan" | "crit" => {
     switch (type) {
-      case "Point fort":
-        return "ok";
-      case "Observation":
+      case "OBSERVATION":
         return "plan";
-      case "Mineur":
+      case "MINEUR":
         return "wip";
-      case "Majeur":
+      case "MAJEUR":
         return "crit";
       default:
         return "plan";
@@ -444,7 +460,7 @@ export function TabAudits() {
   };
 
   /* ---- loading state --------------------------------------------- */
-  if (loadingAudits || loadingDomains || loadingFindings) {
+  if (loadingAudits || loadingProcessus || loadingFindings) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-mut">Chargement...</p>
@@ -473,10 +489,10 @@ export function TabAudits() {
         />
         <KpiCard
           icon={<ClipboardIcon size={20} />}
-          label="Reportés"
-          value={kpis.postponed.toString()}
+          label="Annulés"
+          value={kpis.cancelled.toString()}
           subtitle="À replanifier"
-          accent={kpis.postponed > 0 ? "amber" : "default"}
+          accent={kpis.cancelled > 0 ? "amber" : "default"}
         />
         <KpiCard
           icon={<ClipboardIcon size={20} />}
@@ -507,7 +523,7 @@ export function TabAudits() {
             <Legend />
             <Bar dataKey="Planifié" stackId="a" fill={THEME_COLORS.muted} />
             <Bar dataKey="Réalisé" stackId="a" fill={THEME_COLORS.grn} />
-            <Bar dataKey="Reporté" stackId="a" fill={THEME_COLORS.amb} />
+            <Bar dataKey="Annulé" stackId="a" fill={THEME_COLORS.amb} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -515,40 +531,40 @@ export function TabAudits() {
       {/* ---- Filters ---------------------------------------------- */}
       <div className="flex flex-wrap gap-3 items-center">
         <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
+          value={filterStatut}
+          onChange={(e) => setFilterStatut(e.target.value)}
           className={filterCls}
         >
           <option value="all">Tous statuts</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
+          {STATUT_OPTIONS.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
             </option>
           ))}
         </select>
 
         <select
-          value={filterDomain}
-          onChange={(e) => setFilterDomain(e.target.value)}
+          value={filterProcessus}
+          onChange={(e) => setFilterProcessus(e.target.value)}
           className={filterCls}
         >
-          <option value="all">Tous domaines</option>
-          {domains.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
+          <option value="all">Tous processus</option>
+          {processus.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nom}
             </option>
           ))}
         </select>
 
         <select
-          value={filterAuditor}
-          onChange={(e) => setFilterAuditor(e.target.value)}
+          value={filterAuditeur}
+          onChange={(e) => setFilterAuditeur(e.target.value)}
           className={filterCls}
         >
           <option value="all">Tous auditeurs</option>
-          {auditorList.map((auditor) => (
-            <option key={auditor} value={auditor}>
-              {auditor}
+          {auditeurList.map((auditeur) => (
+            <option key={auditeur} value={auditeur}>
+              {auditeur}
             </option>
           ))}
         </select>
@@ -572,7 +588,7 @@ export function TabAudits() {
             <div key={audit.id} className="space-y-0">
               {/* --- card ------------------------------------------ */}
               <div className="bg-card border border-brd rounded-xl p-5 hover:border-accent/30 transition-colors">
-                {/* row 1: reference + type + actions */}
+                {/* row 1: titre + type + actions */}
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     {/* expand toggle */}
@@ -585,10 +601,10 @@ export function TabAudits() {
                       </button>
                     )}
 
-                    <span className="text-[14px] font-mono font-semibold text-accent truncate">
-                      {audit.reference}
+                    <span className="text-[14px] font-semibold text-accent truncate">
+                      {audit.titre}
                     </span>
-                    <Badge variant="plan">{audit.type}</Badge>
+                    <Badge variant="plan">{labelFor(AUDIT_TYPE_OPTIONS, audit.type)}</Badge>
                   </div>
 
                   {/* action buttons */}
@@ -617,15 +633,15 @@ export function TabAudits() {
                   </div>
                 </div>
 
-                {/* row 2: domain + auditor + date */}
+                {/* row 2: processus + auditeur + date */}
                 <div className="flex items-center gap-4 mt-2 text-[13px] text-sec">
-                  <span>{audit.domain_id ? domainMap[audit.domain_id] : "Aucun domaine"}</span>
+                  <span>{audit.processus_id ? processusMap[audit.processus_id] : "Aucun processus"}</span>
                   <span className="text-brd">|</span>
-                  <span>{audit.auditor || "Pas d'auditeur"}</span>
+                  <span>{audit.auditeur || "Pas d'auditeur"}</span>
                   <span className="text-brd">|</span>
                   <span className="text-mut">
-                    {audit.planned_at
-                      ? new Date(audit.planned_at).toLocaleDateString("fr-FR", {
+                    {audit.date_planifiee
+                      ? new Date(audit.date_planifiee).toLocaleDateString("fr-FR", {
                           day: "numeric",
                           month: "short",
                           year: "numeric",
@@ -634,14 +650,16 @@ export function TabAudits() {
                   </span>
                 </div>
 
-                {/* row 3: status + findings count */}
+                {/* row 3: statut + findings count */}
                 <div className="flex items-center gap-4 mt-3">
-                  <Badge variant={getStatusBadgeVariant(audit.status)}>{audit.status}</Badge>
+                  <Badge variant={getStatutBadgeVariant(audit.statut)}>
+                    {labelFor(STATUT_OPTIONS, audit.statut)}
+                  </Badge>
 
                   <div className="flex items-center gap-3 text-[12px]">
-                    <span className="text-red font-semibold">{audit.major_findings} maj.</span>
-                    <span className="text-amb font-semibold">{audit.minor_findings} min.</span>
-                    <span className="text-sec font-semibold">{audit.observations} obs.</span>
+                    <span className="text-red font-semibold">{audit.nb_constats_majeurs ?? 0} maj.</span>
+                    <span className="text-amb font-semibold">{audit.nb_constats_mineurs ?? 0} min.</span>
+                    <span className="text-sec font-semibold">{audit.nb_observations ?? 0} obs.</span>
                   </div>
 
                   {auditFindings.length > 0 && (
@@ -650,9 +668,9 @@ export function TabAudits() {
                     </span>
                   )}
 
-                  {audit.summary && (
+                  {audit.notes && (
                     <span className="text-[12px] text-mut italic truncate ml-auto max-w-[300px]">
-                      {audit.summary}
+                      {audit.notes}
                     </span>
                   )}
                 </div>
@@ -665,39 +683,50 @@ export function TabAudits() {
                     Constats de l'audit
                   </h4>
                   <div className="space-y-2">
-                    {auditFindings.map((finding) => (
-                      <div
-                        key={finding.id}
-                        className="flex items-start gap-3 p-4 bg-card border border-brd rounded-xl"
-                      >
-                        <div className="flex-shrink-0 pt-0.5">
-                          <Badge variant={getFindingBadgeVariant(finding.type)}>{finding.type}</Badge>
-                        </div>
-                        <div className="flex-1 space-y-1 min-w-0">
-                          {finding.clause_ref && (
-                            <span className="text-[12px] text-mut font-mono">
-                              Clause {finding.clause_ref}
-                            </span>
-                          )}
-                          <p className="text-[14px] text-text">{finding.description}</p>
-                          {finding.capa_id && (
-                            <a
-                              href={`/dashboard/capa#capa-${finding.capa_id}`}
-                              className="text-[12px] text-accent hover:underline inline-flex items-center gap-1"
-                            >
-                              Lien CAPA {capas.find((c) => c.id === finding.capa_id)?.id.substring(0, 4).toUpperCase()}
-                            </a>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => removeFinding(finding.id)}
-                          className="flex-shrink-0 p-1.5 text-mut hover:text-red rounded-lg hover:bg-red/10 transition-all"
-                          title="Supprimer constat"
+                    {auditFindings.map((finding) => {
+                      const linkedCapa = finding.capa_id
+                        ? capas.find((c) => c.id === finding.capa_id)
+                        : null;
+                      return (
+                        <div
+                          key={finding.id}
+                          className="flex items-start gap-3 p-4 bg-card border border-brd rounded-xl"
                         >
-                          <TrashIcon size={13} />
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex-shrink-0 pt-0.5">
+                            <Badge variant={getFindingBadgeVariant(finding.type)}>
+                              {labelFor(FINDING_TYPE_OPTIONS, finding.type)}
+                            </Badge>
+                          </div>
+                          <div className="flex-1 space-y-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[12px] text-mut font-mono">{finding.code}</span>
+                              {finding.norme_concernee && (
+                                <span className="text-[12px] text-mut font-mono">
+                                  Norme {finding.norme_concernee}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[14px] font-semibold text-text">{finding.objet}</p>
+                            <p className="text-[14px] text-text">{finding.description}</p>
+                            {finding.capa_id && (
+                              <a
+                                href={`/dashboard/capa#capa-${finding.capa_id}`}
+                                className="text-[12px] text-accent hover:underline inline-flex items-center gap-1"
+                              >
+                                Lien CAPA {linkedCapa?.reference || finding.capa_id.substring(0, 4).toUpperCase()}
+                              </a>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => removeFinding(finding.id)}
+                            className="flex-shrink-0 p-1.5 text-mut hover:text-red rounded-lg hover:bg-red/10 transition-all"
+                            title="Supprimer constat"
+                          >
+                            <TrashIcon size={13} />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -732,11 +761,11 @@ export function TabAudits() {
           </ResponsiveContainer>
         </div>
 
-        {/* Audits by Domain */}
+        {/* Audits by Processus */}
         <div className="bg-card border border-brd rounded-xl p-6">
-          <h3 className="text-sm font-semibold text-text mb-4">Audits par domaine</h3>
+          <h3 className="text-sm font-semibold text-text mb-4">Audits par processus</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={auditsByDomain}>
+            <BarChart data={auditsByProcessus}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--brd)" />
               <XAxis
                 dataKey="name"
@@ -768,13 +797,13 @@ export function TabAudits() {
         >
           <div className="space-y-5">
             <div>
-              <label className={labelCls}>Référence *</label>
+              <label className={labelCls}>Titre *</label>
               <input
                 type="text"
-                value={newAudit.reference}
-                onChange={(e) => setNewAudit({ ...newAudit, reference: e.target.value })}
+                value={newAudit.titre || ""}
+                onChange={(e) => setNewAudit({ ...newAudit, titre: e.target.value })}
                 className={inputCls}
-                placeholder="AUD-2026-001"
+                placeholder="Ex : Audit interne PDA 2026"
               />
             </div>
 
@@ -785,25 +814,25 @@ export function TabAudits() {
                 onChange={(e) => setNewAudit({ ...newAudit, type: e.target.value })}
                 className={inputCls}
               >
-                {AUDIT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                {AUDIT_TYPE_OPTIONS.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className={labelCls}>Domaine</label>
+              <label className={labelCls}>Processus</label>
               <select
-                value={newAudit.domain_id || ""}
-                onChange={(e) => setNewAudit({ ...newAudit, domain_id: e.target.value })}
+                value={newAudit.processus_id || ""}
+                onChange={(e) => setNewAudit({ ...newAudit, processus_id: e.target.value || null })}
                 className={inputCls}
               >
-                <option value="">Sélectionner un domaine</option>
-                {domains.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
+                <option value="">Sélectionner un processus</option>
+                {processus.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nom}
                   </option>
                 ))}
               </select>
@@ -813,8 +842,8 @@ export function TabAudits() {
               <label className={labelCls}>Auditeur</label>
               <input
                 type="text"
-                value={newAudit.auditor || ""}
-                onChange={(e) => setNewAudit({ ...newAudit, auditor: e.target.value })}
+                value={newAudit.auditeur || ""}
+                onChange={(e) => setNewAudit({ ...newAudit, auditeur: e.target.value })}
                 className={inputCls}
                 placeholder="Nom de l'auditeur"
               />
@@ -822,11 +851,11 @@ export function TabAudits() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelCls}>Date planifiée</label>
+                <label className={labelCls}>Date planifiée *</label>
                 <input
                   type="date"
-                  value={newAudit.planned_at || ""}
-                  onChange={(e) => setNewAudit({ ...newAudit, planned_at: e.target.value })}
+                  value={newAudit.date_planifiee || ""}
+                  onChange={(e) => setNewAudit({ ...newAudit, date_planifiee: e.target.value })}
                   className={inputCls}
                 />
               </div>
@@ -834,13 +863,13 @@ export function TabAudits() {
               <div>
                 <label className={labelCls}>Statut</label>
                 <select
-                  value={newAudit.status}
-                  onChange={(e) => setNewAudit({ ...newAudit, status: e.target.value as any })}
+                  value={newAudit.statut}
+                  onChange={(e) => setNewAudit({ ...newAudit, statut: e.target.value })}
                   className={inputCls}
                 >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
+                  {STATUT_OPTIONS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
                     </option>
                   ))}
                 </select>
@@ -848,13 +877,13 @@ export function TabAudits() {
             </div>
 
             <div>
-              <label className={labelCls}>Résumé</label>
+              <label className={labelCls}>Notes</label>
               <textarea
-                value={newAudit.summary || ""}
-                onChange={(e) => setNewAudit({ ...newAudit, summary: e.target.value })}
+                value={newAudit.notes || ""}
+                onChange={(e) => setNewAudit({ ...newAudit, notes: e.target.value })}
                 rows={3}
                 className={`${inputCls} resize-none`}
-                placeholder="Résumé de l'audit..."
+                placeholder="Notes sur l'audit..."
               />
             </div>
 
@@ -864,7 +893,7 @@ export function TabAudits() {
               </button>
               <button
                 onClick={handleAdd}
-                disabled={!newAudit.reference}
+                disabled={!newAudit.titre || !newAudit.date_planifiee}
                 className={btnPrimary}
               >
                 Créer
@@ -885,36 +914,60 @@ export function TabAudits() {
           }}
         >
           <div className="space-y-5">
-            <div>
-              <label className={labelCls}>Type</label>
-              <select
-                value={newFinding.type}
-                onChange={(e) => setNewFinding({ ...newFinding, type: e.target.value })}
-                className={inputCls}
-              >
-                {FINDING_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Code *</label>
+                <input
+                  type="text"
+                  value={newFinding.code || ""}
+                  onChange={(e) => setNewFinding({ ...newFinding, code: e.target.value })}
+                  className={inputCls}
+                  placeholder="CST-2026-001"
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>Type</label>
+                <select
+                  value={newFinding.type}
+                  onChange={(e) => setNewFinding({ ...newFinding, type: e.target.value })}
+                  className={inputCls}
+                >
+                  {FINDING_TYPE_OPTIONS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div>
-              <label className={labelCls}>Clause ISO (optionnel)</label>
+              <label className={labelCls}>Objet *</label>
               <input
                 type="text"
-                value={newFinding.clause_ref || ""}
-                onChange={(e) => setNewFinding({ ...newFinding, clause_ref: e.target.value })}
+                value={newFinding.objet || ""}
+                onChange={(e) => setNewFinding({ ...newFinding, objet: e.target.value })}
                 className={inputCls}
-                placeholder="9.2.2"
+                placeholder="Objet du constat"
+              />
+            </div>
+
+            <div>
+              <label className={labelCls}>Norme concernée (optionnel)</label>
+              <input
+                type="text"
+                value={newFinding.norme_concernee || ""}
+                onChange={(e) => setNewFinding({ ...newFinding, norme_concernee: e.target.value || null })}
+                className={inputCls}
+                placeholder="ISO 9001 - 9.2.2"
               />
             </div>
 
             <div>
               <label className={labelCls}>Description *</label>
               <textarea
-                value={newFinding.description}
+                value={newFinding.description || ""}
                 onChange={(e) => setNewFinding({ ...newFinding, description: e.target.value })}
                 rows={4}
                 className={`${inputCls} resize-none`}
@@ -932,7 +985,7 @@ export function TabAudits() {
                 <option value="">Aucune CAPA</option>
                 {capas.map((c) => (
                   <option key={c.id} value={c.id}>
-                    CAPA-{c.id.substring(0, 4).toUpperCase()} - {c.description.substring(0, 50)}
+                    {c.reference || `CAPA-${c.id.substring(0, 4).toUpperCase()}`} - {c.titre.substring(0, 50)}
                   </option>
                 ))}
               </select>
@@ -950,7 +1003,7 @@ export function TabAudits() {
               </button>
               <button
                 onClick={handleAddFinding}
-                disabled={!newFinding.description}
+                disabled={!newFinding.code || !newFinding.objet || !newFinding.description}
                 className={btnPrimary}
               >
                 Ajouter

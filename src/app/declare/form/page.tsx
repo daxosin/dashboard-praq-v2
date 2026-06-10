@@ -4,7 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CheckIcon, UploadIcon } from "@/components/icons";
 import { createClient } from "@/lib/supabase";
-import type { Domain, CapaInsert } from "@/lib/database.types";
+// Flux terrain hérité — repose sur des tables absentes en prod (`domains`,
+// `staff_pins`, bucket `photos`) : décision de refonte en attente (CLAUDE.md TODOs).
+type Domain = { id: string; name: string };
 
 const EVENT_TYPES = [
   { value: "Non-conformité", label: "Non-conformité", color: "var(--red)" },

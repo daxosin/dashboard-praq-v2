@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useSupabaseCrud } from "@/lib/hooks/useSupabaseCrud";
-import type { Supplier, SupplierEvent, SupplierInsert, SupplierEventInsert } from "@/lib/database.types";
+import type { Fournisseur, FournisseurInsert } from "@/lib/db-rows";
 import {
   KpiCard,
   DataTable,
@@ -24,18 +24,27 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 
-const SUPPLIER_TYPES = ["Grossiste", "Fabricant", "Prestataire", "Sous-traitant"] as const;
-
-const EVENT_TYPES = ["Rupture", "Qualité", "Délai", "Conformité"] as const;
+/* ------------------------------------------------------------------ */
+/*  Enum value <-> display label mapping (aligned on real DB CHECKs)  */
+/* ------------------------------------------------------------------ */
+const TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "LABO", label: "Laboratoire" },
+  { value: "GROSSISTE", label: "Grossiste" },
+  { value: "MATERIEL", label: "Matériel" },
+  { value: "SERVICE", label: "Service" },
+  { value: "AUTRE", label: "Autre" },
+];
 
 const BOOLEAN_OPTIONS = [
   { value: "true", label: "Oui" },
   { value: "false", label: "Non" },
 ];
+
+const labelFor = (opts: { value: string; label: string }[], v: string | null): string =>
+  opts.find((o) => o.value === v)?.label ?? String(v ?? "");
 
 const THEME_COLORS = {
   primary: "var(--accent)",
@@ -45,7 +54,7 @@ const THEME_COLORS = {
   muted: "var(--text-muted)",
 };
 
-const CHART_COLORS = ["#00FF88", "#FFB800", "#FF4444", "#00CCFF"];
+const CHART_COLORS = ["#00FF88", "#FFB800", "#FF4444", "#00CCFF", "#CC88FF"];
 
 function getScoreBadgeVariant(score: number | null): "ok" | "wip" | "crit" {
   if (score === null) return "wip";
@@ -63,202 +72,137 @@ function getScoreColor(score: number | null): string {
 
 export function TabFournisseurs() {
   const {
-    data: suppliers,
-    loading: loadingSuppliers,
-    create: createSupplier,
-    update: updateSupplier,
-    remove: removeSupplier,
-  } = useSupabaseCrud<Supplier>("suppliers", {
-    orderBy: { column: "name", ascending: true },
+    data: fournisseurs,
+    loading: loadingFournisseurs,
+    create: createFournisseur,
+    update: updateFournisseur,
+    remove: removeFournisseur,
+  } = useSupabaseCrud<Fournisseur>("fournisseurs", {
+    orderBy: { column: "nom", ascending: true },
   });
 
-  const {
-    data: supplierEvents,
-    loading: loadingEvents,
-    create: createEvent,
-    update: updateEvent,
-    remove: removeEvent,
-  } = useSupabaseCrud<SupplierEvent>("supplier_events", {
-    orderBy: { column: "created_at", ascending: false },
-  });
-
-  const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
-  const [showAddEventModal, setShowAddEventModal] = useState(false);
-  const [deleteSupplierId, setDeleteSupplierId] = useState<string | null>(null);
-  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
+  const [showAddFournisseurModal, setShowAddFournisseurModal] = useState(false);
+  const [deleteFournisseurId, setDeleteFournisseurId] = useState<string | null>(null);
 
   const [filterType, setFilterType] = useState<string>("all");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterScoreMin, setFilterScoreMin] = useState<number>(0);
   const [filterScoreMax, setFilterScoreMax] = useState<number>(100);
-  const [filterRgpd, setFilterRgpd] = useState<string>("all");
-  const [filterHds, setFilterHds] = useState<string>("all");
+  const [filterQualifie, setFilterQualifie] = useState<string>("all");
 
-  const [newSupplier, setNewSupplier] = useState<Partial<SupplierInsert>>({
-    name: "",
-    type: "Grossiste",
-    rgpd_clause: false,
-    hds_compliant: false,
-  });
-
-  const [newEvent, setNewEvent] = useState<Partial<SupplierEventInsert>>({
-    supplier_id: "",
-    type: "Rupture",
-    description: "",
+  const [newFournisseur, setNewFournisseur] = useState<Partial<FournisseurInsert>>({
+    nom: "",
+    type: "GROSSISTE",
+    qualifie: false,
   });
 
   // Calculate KPIs
   const kpis = useMemo(() => {
-    const totalSuppliers = suppliers.length;
+    const totalFournisseurs = fournisseurs.length;
 
-    const scores = suppliers
-      .filter((s) => s.eval_score !== null)
-      .map((s) => s.eval_score as number);
+    const scores = fournisseurs
+      .filter((f) => f.score_evaluation !== null)
+      .map((f) => f.score_evaluation as number);
     const avgScore = scores.length > 0
       ? Math.round(scores.reduce((acc, s) => acc + s, 0) / scores.length)
       : 0;
 
-    const incidentsOpen = supplierEvents.length;
+    const totalNc = fournisseurs.reduce((acc, f) => acc + (f.nb_nc || 0), 0);
 
-    const rgpdCompliant = suppliers.filter((s) => s.rgpd_clause).length;
-    const rgpdCompliantPercent = totalSuppliers > 0
-      ? Math.round((rgpdCompliant / totalSuppliers) * 100)
+    const qualified = fournisseurs.filter((f) => f.qualifie).length;
+    const qualifiedPercent = totalFournisseurs > 0
+      ? Math.round((qualified / totalFournisseurs) * 100)
       : 0;
 
     return {
-      totalSuppliers,
+      totalFournisseurs,
       avgScore,
-      incidentsOpen,
-      rgpdCompliantPercent,
+      totalNc,
+      qualifiedPercent,
     };
-  }, [suppliers, supplierEvents]);
+  }, [fournisseurs]);
 
-  // Filter suppliers
-  const filteredSuppliers = useMemo(() => {
-    return suppliers.filter((s) => {
-      if (filterType !== "all" && s.type !== filterType) return false;
-      if (filterCategory !== "all" && s.category !== filterCategory) return false;
-      if (s.eval_score !== null) {
-        if (s.eval_score < filterScoreMin || s.eval_score > filterScoreMax) return false;
+  // Filter fournisseurs
+  const filteredFournisseurs = useMemo(() => {
+    return fournisseurs.filter((f) => {
+      if (filterType !== "all" && f.type !== filterType) return false;
+      if (f.score_evaluation !== null) {
+        if (f.score_evaluation < filterScoreMin || f.score_evaluation > filterScoreMax) return false;
       }
-      if (filterRgpd !== "all") {
-        const rgpdValue = filterRgpd === "true";
-        if (s.rgpd_clause !== rgpdValue) return false;
-      }
-      if (filterHds !== "all") {
-        const hdsValue = filterHds === "true";
-        if (s.hds_compliant !== hdsValue) return false;
+      if (filterQualifie !== "all") {
+        const qualifieValue = filterQualifie === "true";
+        if ((f.qualifie ?? false) !== qualifieValue) return false;
       }
       return true;
     });
-  }, [suppliers, filterType, filterCategory, filterScoreMin, filterScoreMax, filterRgpd, filterHds]);
+  }, [fournisseurs, filterType, filterScoreMin, filterScoreMax, filterQualifie]);
 
-  // Get unique categories
-  const categories = useMemo(() => {
-    const cats = new Set(suppliers.map((s) => s.category).filter((c) => c !== null));
-    return Array.from(cats);
-  }, [suppliers]);
-
-  // Chart data: suppliers by type
-  const suppliersByType = useMemo(() => {
+  // Chart data: fournisseurs by type
+  const fournisseursByType = useMemo(() => {
     const counts: Record<string, number> = {};
-    suppliers.forEach((s) => {
-      counts[s.type] = (counts[s.type] || 0) + 1;
+    fournisseurs.forEach((f) => {
+      const lbl = labelFor(TYPE_OPTIONS, f.type);
+      counts[lbl] = (counts[lbl] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [suppliers]);
+  }, [fournisseurs]);
 
-  // Chart data: RGPD compliance
-  const rgpdData = useMemo(() => {
-    const compliant = suppliers.filter((s) => s.rgpd_clause).length;
-    const nonCompliant = suppliers.length - compliant;
+  // Chart data: qualification status
+  const qualificationData = useMemo(() => {
+    const qualified = fournisseurs.filter((f) => f.qualifie).length;
+    const notQualified = fournisseurs.length - qualified;
     return [
-      { name: "Conforme RGPD", value: compliant },
-      { name: "Non conforme", value: nonCompliant },
+      { name: "Qualifiés", value: qualified },
+      { name: "Non qualifiés", value: notQualified },
     ];
-  }, [suppliers]);
+  }, [fournisseurs]);
 
-  // Chart data: scores by supplier (top 10)
-  const scoresBySupplier = useMemo(() => {
-    return suppliers
-      .filter((s) => s.eval_score !== null)
-      .map((s) => ({
-        name: s.name.length > 20 ? s.name.substring(0, 20) + "..." : s.name,
-        score: s.eval_score,
-        color: getScoreColor(s.eval_score),
+  // Chart data: scores by fournisseur (top 10)
+  const scoresByFournisseur = useMemo(() => {
+    return fournisseurs
+      .filter((f) => f.score_evaluation !== null)
+      .map((f) => ({
+        name: f.nom.length > 20 ? f.nom.substring(0, 20) + "..." : f.nom,
+        score: f.score_evaluation,
+        color: getScoreColor(f.score_evaluation),
       }))
       .sort((a, b) => (b.score || 0) - (a.score || 0))
       .slice(0, 10);
-  }, [suppliers]);
+  }, [fournisseurs]);
 
-  // Supplier map for events
-  const supplierMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    suppliers.forEach((s) => {
-      map[s.id] = s.name;
-    });
-    return map;
-  }, [suppliers]);
-
-  const handleAddSupplier = async () => {
+  const handleAddFournisseur = async () => {
     try {
-      await createSupplier(newSupplier as SupplierInsert);
-      setShowAddSupplierModal(false);
-      setNewSupplier({
-        name: "",
-        type: "Grossiste",
-        rgpd_clause: false,
-        hds_compliant: false,
+      await createFournisseur(newFournisseur as FournisseurInsert);
+      setShowAddFournisseurModal(false);
+      setNewFournisseur({
+        nom: "",
+        type: "GROSSISTE",
+        qualifie: false,
       });
     } catch (error) {
-      console.error("Error creating supplier:", error);
+      console.error("Error creating fournisseur:", error);
     }
   };
 
-  const handleAddEvent = async () => {
+  const handleDeleteFournisseur = async () => {
+    if (!deleteFournisseurId) return;
     try {
-      await createEvent(newEvent as SupplierEventInsert);
-      setShowAddEventModal(false);
-      setNewEvent({
-        supplier_id: "",
-        type: "Rupture",
-        description: "",
-      });
+      await removeFournisseur(deleteFournisseurId);
+      setDeleteFournisseurId(null);
     } catch (error) {
-      console.error("Error creating supplier event:", error);
+      console.error("Error deleting fournisseur:", error);
     }
   };
 
-  const handleDeleteSupplier = async () => {
-    if (!deleteSupplierId) return;
-    try {
-      await removeSupplier(deleteSupplierId);
-      setDeleteSupplierId(null);
-    } catch (error) {
-      console.error("Error deleting supplier:", error);
-    }
-  };
-
-  const handleDeleteEvent = async () => {
-    if (!deleteEventId) return;
-    try {
-      await removeEvent(deleteEventId);
-      setDeleteEventId(null);
-    } catch (error) {
-      console.error("Error deleting event:", error);
-    }
-  };
-
-  const supplierColumns: ColumnDef<Supplier>[] = [
+  const fournisseurColumns: ColumnDef<Fournisseur>[] = [
     {
-      key: "name",
+      key: "nom",
       label: "Nom",
-      render: (supplier) => (
+      render: (fournisseur) => (
         <EditableCell
-          value={supplier.name}
+          value={fournisseur.nom}
           type="text"
           onSave={async (value) => {
-            await updateSupplier(supplier.id, { name: String(value) });
+            await updateFournisseur(fournisseur.id, { nom: String(value) });
           }}
         />
       ),
@@ -266,101 +210,117 @@ export function TabFournisseurs() {
     {
       key: "type",
       label: "Type",
-      render: (supplier) => (
+      render: (fournisseur) => (
         <EditableCell
-          value={supplier.type}
+          value={fournisseur.type || ""}
           type="select"
-          options={SUPPLIER_TYPES.map((t) => ({ value: t, label: t }))}
+          options={TYPE_OPTIONS}
           onSave={async (value) => {
-            await updateSupplier(supplier.id, { type: String(value) });
+            await updateFournisseur(fournisseur.id, { type: String(value) });
           }}
         />
       ),
     },
     {
-      key: "category",
-      label: "Catégorie",
-      render: (supplier) => (
+      key: "contact_nom",
+      label: "Contact",
+      render: (fournisseur) => (
         <EditableCell
-          value={supplier.category || ""}
+          value={fournisseur.contact_nom || ""}
           type="text"
           onSave={async (value) => {
-            await updateSupplier(supplier.id, { category: String(value) });
+            await updateFournisseur(fournisseur.id, { contact_nom: String(value) || null });
           }}
         />
       ),
     },
     {
-      key: "contract",
-      label: "Contrat",
-      render: (supplier) => (
+      key: "contact_email",
+      label: "Email",
+      render: (fournisseur) => (
         <EditableCell
-          value={supplier.contract || ""}
+          value={fournisseur.contact_email || ""}
           type="text"
           onSave={async (value) => {
-            await updateSupplier(supplier.id, { contract: String(value) });
+            await updateFournisseur(fournisseur.id, { contact_email: String(value) || null });
           }}
         />
       ),
     },
     {
-      key: "last_eval_at",
+      key: "date_derniere_evaluation",
       label: "Dernière évaluation",
-      render: (supplier) => (
+      render: (fournisseur) => (
         <EditableCell
-          value={supplier.last_eval_at || ""}
+          value={fournisseur.date_derniere_evaluation || ""}
           type="date"
           onSave={async (value) => {
-            await updateSupplier(supplier.id, { last_eval_at: String(value) });
+            await updateFournisseur(fournisseur.id, {
+              date_derniere_evaluation: String(value) || null,
+            });
           }}
         />
       ),
     },
     {
-      key: "eval_score",
+      key: "date_prochaine_evaluation",
+      label: "Prochaine évaluation",
+      render: (fournisseur) => (
+        <EditableCell
+          value={fournisseur.date_prochaine_evaluation || ""}
+          type="date"
+          onSave={async (value) => {
+            await updateFournisseur(fournisseur.id, {
+              date_prochaine_evaluation: String(value) || null,
+            });
+          }}
+        />
+      ),
+    },
+    {
+      key: "score_evaluation",
       label: "Score évaluation",
-      render: (supplier) => (
+      render: (fournisseur) => (
         <div className="flex items-center gap-2">
           <EditableCell
-            value={supplier.eval_score?.toString() || ""}
+            value={fournisseur.score_evaluation?.toString() || ""}
             type="number"
             onSave={async (value) => {
-              const score = value ? parseFloat(String(value)) : null;
-              await updateSupplier(supplier.id, { eval_score: score });
+              const score = value ? parseInt(String(value), 10) : null;
+              await updateFournisseur(fournisseur.id, { score_evaluation: score });
             }}
           />
-          {supplier.eval_score !== null && (
-            <Badge variant={getScoreBadgeVariant(supplier.eval_score)}>
-              {supplier.eval_score}
+          {fournisseur.score_evaluation !== null && (
+            <Badge variant={getScoreBadgeVariant(fournisseur.score_evaluation)}>
+              {fournisseur.score_evaluation}
             </Badge>
           )}
         </div>
       ),
     },
     {
-      key: "rgpd_clause",
-      label: "Clause RGPD",
-      render: (supplier) => (
+      key: "qualifie",
+      label: "Qualifié",
+      render: (fournisseur) => (
         <EditableCell
-          value={supplier.rgpd_clause.toString()}
+          value={(fournisseur.qualifie ?? false).toString()}
           type="select"
           options={BOOLEAN_OPTIONS}
           onSave={async (value) => {
-            await updateSupplier(supplier.id, { rgpd_clause: value === "true" });
+            await updateFournisseur(fournisseur.id, { qualifie: value === "true" });
           }}
         />
       ),
     },
     {
-      key: "hds_compliant",
-      label: "Conformité HDS",
-      render: (supplier) => (
+      key: "nb_nc",
+      label: "NC",
+      render: (fournisseur) => (
         <EditableCell
-          value={supplier.hds_compliant.toString()}
-          type="select"
-          options={BOOLEAN_OPTIONS}
+          value={(fournisseur.nb_nc ?? 0).toString()}
+          type="number"
           onSave={async (value) => {
-            await updateSupplier(supplier.id, { hds_compliant: value === "true" });
+            await updateFournisseur(fournisseur.id, { nb_nc: parseInt(String(value), 10) || 0 });
           }}
         />
       ),
@@ -368,9 +328,9 @@ export function TabFournisseurs() {
     {
       key: "actions",
       label: "",
-      render: (supplier) => (
+      render: (fournisseur) => (
         <button
-          onClick={() => setDeleteSupplierId(supplier.id)}
+          onClick={() => setDeleteFournisseurId(fournisseur.id)}
           className="p-1.5 text-mut hover:text-red transition-colors"
           title="Supprimer"
         >
@@ -380,95 +340,7 @@ export function TabFournisseurs() {
     },
   ];
 
-  const eventColumns: ColumnDef<SupplierEvent>[] = [
-    {
-      key: "supplier_id",
-      label: "Fournisseur",
-      render: (event) => (
-        <EditableCell
-          value={event.supplier_id}
-          type="select"
-          options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
-          onSave={async (value) => {
-            await updateEvent(event.id, { supplier_id: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "type",
-      label: "Type",
-      render: (event) => (
-        <EditableCell
-          value={event.type}
-          type="select"
-          options={EVENT_TYPES.map((t) => ({ value: t, label: t }))}
-          onSave={async (value) => {
-            await updateEvent(event.id, { type: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "description",
-      label: "Description",
-      render: (event) => (
-        <EditableCell
-          value={event.description}
-          type="text"
-          onSave={async (value) => {
-            await updateEvent(event.id, { description: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "action",
-      label: "Action",
-      render: (event) => (
-        <EditableCell
-          value={event.action || ""}
-          type="text"
-          onSave={async (value) => {
-            await updateEvent(event.id, { action: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "capa_id",
-      label: "Lien CAPA",
-      render: (event) => (
-        <div>
-          {event.capa_id ? (
-            <a
-              href={`/dashboard/capa#capa-${event.capa_id}`}
-              className="text-xs font-mono text-accent hover:underline"
-            >
-              CAPA-{event.capa_id.substring(0, 4).toUpperCase()}
-            </a>
-          ) : (
-            <span className="text-xs text-mut">Aucun</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "actions",
-      label: "",
-      render: (event) => (
-        <button
-          onClick={() => setDeleteEventId(event.id)}
-          className="p-1.5 text-mut hover:text-red transition-colors"
-          title="Supprimer"
-        >
-          <TrashIcon size={14} />
-        </button>
-      ),
-    },
-  ];
-
-  if (loadingSuppliers || loadingEvents) {
+  if (loadingFournisseurs) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-mut">Chargement...</p>
@@ -483,7 +355,7 @@ export function TabFournisseurs() {
         <KpiCard
           icon={<TruckIcon size={20} />}
           label="Total fournisseurs"
-          value={kpis.totalSuppliers.toString()}
+          value={kpis.totalFournisseurs.toString()}
           subtitle="Fournisseurs actifs"
         />
         <KpiCard
@@ -491,21 +363,21 @@ export function TabFournisseurs() {
           label="Score moyen évaluation"
           value={kpis.avgScore.toString()}
           subtitle="Moyenne des scores"
-          accent={kpis.avgScore < 7 ? "amber" : "default"}
+          accent={kpis.avgScore < 70 ? "amber" : "default"}
         />
         <KpiCard
           icon={<TruckIcon size={20} />}
-          label="Incidents ouverts"
-          value={kpis.incidentsOpen.toString()}
-          subtitle="Événements enregistrés"
-          accent={kpis.incidentsOpen > 0 ? "amber" : "default"}
+          label="Non-conformités"
+          value={kpis.totalNc.toString()}
+          subtitle="NC cumulées fournisseurs"
+          accent={kpis.totalNc > 0 ? "amber" : "default"}
         />
         <KpiCard
           icon={<TruckIcon size={20} />}
-          label="RGPD conformes"
-          value={`${kpis.rgpdCompliantPercent}%`}
-          subtitle="Clause RGPD signée"
-          accent={kpis.rgpdCompliantPercent >= 80 ? "default" : "amber"}
+          label="Fournisseurs qualifiés"
+          value={`${kpis.qualifiedPercent}%`}
+          subtitle="Qualification validée"
+          accent={kpis.qualifiedPercent >= 80 ? "default" : "amber"}
         />
       </div>
 
@@ -517,22 +389,9 @@ export function TabFournisseurs() {
           className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
         >
           <option value="all">Tous types</option>
-          {SUPPLIER_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
-        >
-          <option value="all">Toutes catégories</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>
-              {c}
+          {TYPE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
             </option>
           ))}
         </select>
@@ -559,45 +418,35 @@ export function TabFournisseurs() {
         </div>
 
         <select
-          value={filterRgpd}
-          onChange={(e) => setFilterRgpd(e.target.value)}
+          value={filterQualifie}
+          onChange={(e) => setFilterQualifie(e.target.value)}
           className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
         >
-          <option value="all">RGPD: Tous</option>
-          <option value="true">RGPD: Oui</option>
-          <option value="false">RGPD: Non</option>
-        </select>
-
-        <select
-          value={filterHds}
-          onChange={(e) => setFilterHds(e.target.value)}
-          className="px-4 py-2.5 bg-card text-text border border-brd rounded-xl text-[14px]"
-        >
-          <option value="all">HDS: Tous</option>
-          <option value="true">HDS: Oui</option>
-          <option value="false">HDS: Non</option>
+          <option value="all">Qualifié: Tous</option>
+          <option value="true">Qualifié: Oui</option>
+          <option value="false">Qualifié: Non</option>
         </select>
 
         <div className="ml-auto">
-          <AddButton onClick={() => setShowAddSupplierModal(true)} />
+          <AddButton onClick={() => setShowAddFournisseurModal(true)} />
         </div>
       </div>
 
-      {/* Suppliers Data Table */}
+      {/* Fournisseurs Data Table */}
       <div>
         <h2 className="text-lg font-semibold text-text mb-3">Registre fournisseurs</h2>
-        <DataTable columns={supplierColumns} data={filteredSuppliers} />
+        <DataTable columns={fournisseurColumns} data={filteredFournisseurs} />
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Scores by Supplier */}
+        {/* Scores by Fournisseur */}
         <div className="bg-card border border-brd rounded-xl p-6">
           <h3 className="text-sm font-semibold text-text mb-4">
             Scores par fournisseur (Top 10)
           </h3>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={scoresBySupplier} layout="vertical">
+            <BarChart data={scoresByFournisseur} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis type="number" domain={[0, 100]} tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
               <YAxis
@@ -614,7 +463,7 @@ export function TabFournisseurs() {
                 }}
               />
               <Bar dataKey="score" radius={[0, 4, 4, 0]}>
-                {scoresBySupplier.map((entry, index) => (
+                {scoresByFournisseur.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Bar>
@@ -622,13 +471,13 @@ export function TabFournisseurs() {
           </ResponsiveContainer>
         </div>
 
-        {/* Suppliers by Type */}
+        {/* Fournisseurs by Type */}
         <div className="bg-card border border-brd rounded-xl p-6">
           <h3 className="text-sm font-semibold text-text mb-4">Fournisseurs par type</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
-                data={suppliersByType}
+                data={fournisseursByType}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -637,7 +486,7 @@ export function TabFournisseurs() {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {suppliersByType.map((entry, index) => (
+                {fournisseursByType.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                 ))}
               </Pie>
@@ -646,13 +495,13 @@ export function TabFournisseurs() {
           </ResponsiveContainer>
         </div>
 
-        {/* RGPD Compliance */}
+        {/* Qualification */}
         <div className="bg-card border border-brd rounded-xl p-6">
-          <h3 className="text-sm font-semibold text-text mb-4">Conformité RGPD</h3>
+          <h3 className="text-sm font-semibold text-text mb-4">Qualification fournisseurs</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
-                data={rgpdData}
+                data={qualificationData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -670,201 +519,119 @@ export function TabFournisseurs() {
         </div>
       </div>
 
-      {/* Supplier Events Section */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-text">Incidents fournisseurs</h2>
-          <AddButton onClick={() => setShowAddEventModal(true)} />
-        </div>
-        <DataTable columns={eventColumns} data={supplierEvents} />
-      </div>
-
-      {/* Add Supplier Modal */}
-      {showAddSupplierModal && (
+      {/* Add Fournisseur Modal */}
+      {showAddFournisseurModal && (
         <Modal
-          isOpen={showAddSupplierModal}
+          isOpen={showAddFournisseurModal}
           title="Nouveau fournisseur"
-          onClose={() => setShowAddSupplierModal(false)}
+          onClose={() => setShowAddFournisseurModal(false)}
         >
           <div className="space-y-4">
             <div>
               <label className="block text-[13px] font-semibold text-sec mb-2">Nom *</label>
               <input
                 type="text"
-                value={newSupplier.name}
-                onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
+                value={newFournisseur.nom}
+                onChange={(e) => setNewFournisseur({ ...newFournisseur, nom: e.target.value })}
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
                 placeholder="Nom du fournisseur"
               />
             </div>
 
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">Type</label>
-              <select
-                value={newSupplier.type}
-                onChange={(e) => setNewSupplier({ ...newSupplier, type: e.target.value as any })}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-              >
-                {SUPPLIER_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[13px] font-semibold text-sec mb-2">Type</label>
+                <select
+                  value={newFournisseur.type || "GROSSISTE"}
+                  onChange={(e) => setNewFournisseur({ ...newFournisseur, type: e.target.value })}
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                >
+                  {TYPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-semibold text-sec mb-2">Qualifié</label>
+                <select
+                  value={(newFournisseur.qualifie ?? false).toString()}
+                  onChange={(e) =>
+                    setNewFournisseur({ ...newFournisseur, qualifie: e.target.value === "true" })
+                  }
+                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                >
+                  {BOOLEAN_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">Catégorie</label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Nom du contact</label>
               <input
                 type="text"
-                value={newSupplier.category || ""}
-                onChange={(e) => setNewSupplier({ ...newSupplier, category: e.target.value })}
+                value={newFournisseur.contact_nom || ""}
+                onChange={(e) => setNewFournisseur({ ...newFournisseur, contact_nom: e.target.value })}
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                placeholder="Médicaments, Dispositifs médicaux, Services..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">Contrat</label>
-              <input
-                type="text"
-                value={newSupplier.contract || ""}
-                onChange={(e) => setNewSupplier({ ...newSupplier, contract: e.target.value })}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                placeholder="Référence du contrat"
+                placeholder="Interlocuteur principal"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Clause RGPD
-                </label>
-                <select
-                  value={newSupplier.rgpd_clause?.toString() || "false"}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, rgpd_clause: e.target.value === "true" })}
+                <label className="block text-[13px] font-semibold text-sec mb-2">Email</label>
+                <input
+                  type="email"
+                  value={newFournisseur.contact_email || ""}
+                  onChange={(e) =>
+                    setNewFournisseur({ ...newFournisseur, contact_email: e.target.value })
+                  }
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                >
-                  {BOOLEAN_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="contact@fournisseur.fr"
+                />
               </div>
 
               <div>
-                <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Conformité HDS
-                </label>
-                <select
-                  value={newSupplier.hds_compliant?.toString() || "false"}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, hds_compliant: e.target.value === "true" })}
+                <label className="block text-[13px] font-semibold text-sec mb-2">Téléphone</label>
+                <input
+                  type="tel"
+                  value={newFournisseur.contact_tel || ""}
+                  onChange={(e) =>
+                    setNewFournisseur({ ...newFournisseur, contact_tel: e.target.value })
+                  }
                   className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                >
-                  {BOOLEAN_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="01 23 45 67 89"
+                />
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={() => setShowAddSupplierModal(false)}
-                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleAddSupplier}
-                disabled={!newSupplier.name}
-                className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Créer
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Add Event Modal */}
-      {showAddEventModal && (
-        <Modal
-          isOpen={showAddEventModal}
-          title="Nouvel incident fournisseur"
-          onClose={() => setShowAddEventModal(false)}
-        >
-          <div className="space-y-4">
             <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">
-                Fournisseur *
-              </label>
-              <select
-                value={newEvent.supplier_id}
-                onChange={(e) => setNewEvent({ ...newEvent, supplier_id: e.target.value })}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-              >
-                <option value="">Sélectionner un fournisseur</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">Type</label>
-              <select
-                value={newEvent.type}
-                onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as any })}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-              >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">
-                Description *
-              </label>
+              <label className="block text-[13px] font-semibold text-sec mb-2">Notes</label>
               <textarea
-                value={newEvent.description}
-                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                rows={4}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
-                placeholder="Description de l'incident..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">Action</label>
-              <textarea
-                value={newEvent.action || ""}
-                onChange={(e) => setNewEvent({ ...newEvent, action: e.target.value })}
+                value={newFournisseur.notes || ""}
+                onChange={(e) => setNewFournisseur({ ...newFournisseur, notes: e.target.value })}
                 rows={2}
                 className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
-                placeholder="Action prise ou planifiée..."
+                placeholder="Notes complémentaires..."
               />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <button
-                onClick={() => setShowAddEventModal(false)}
+                onClick={() => setShowAddFournisseurModal(false)}
                 className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
               >
                 Annuler
               </button>
               <button
-                onClick={handleAddEvent}
-                disabled={!newEvent.supplier_id || !newEvent.description}
+                onClick={handleAddFournisseur}
+                disabled={!newFournisseur.nom}
                 className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
@@ -874,23 +641,13 @@ export function TabFournisseurs() {
         </Modal>
       )}
 
-      {/* Delete Supplier Confirmation */}
-      {deleteSupplierId && (
+      {/* Delete Fournisseur Confirmation */}
+      {deleteFournisseurId && (
         <ConfirmDelete
-          isOpen={!!deleteSupplierId}
+          isOpen={!!deleteFournisseurId}
           itemName="ce fournisseur"
-          onConfirm={handleDeleteSupplier}
-          onCancel={() => setDeleteSupplierId(null)}
-        />
-      )}
-
-      {/* Delete Event Confirmation */}
-      {deleteEventId && (
-        <ConfirmDelete
-          isOpen={!!deleteEventId}
-          itemName="cet incident fournisseur"
-          onConfirm={handleDeleteEvent}
-          onCancel={() => setDeleteEventId(null)}
+          onConfirm={handleDeleteFournisseur}
+          onCancel={() => setDeleteFournisseurId(null)}
         />
       )}
     </div>

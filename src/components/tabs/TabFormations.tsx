@@ -12,9 +12,15 @@ import {
   type BadgeVariant,
   type ColumnDef,
 } from "@/components/ui";
-import { UsersIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import { UsersIcon, TrashIcon } from "@/components/icons";
 import { useSupabaseCrud } from "@/lib/hooks/useSupabaseCrud";
-import type { Staff, Qualification, Training } from "@/lib/database.types";
+import type {
+  StaffLite,
+  Habilitation,
+  HabilitationInsert,
+  Formation,
+  FormationInsert,
+} from "@/lib/db-rows";
 import {
   BarChart,
   Bar,
@@ -25,76 +31,115 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 
-interface StaffWithDetails extends Staff {
-  qualifications?: Qualification[];
-  trainings?: Training[];
-}
+/* ------------------------------------------------------------------ */
+/*  Enum value <-> display label mapping (valeurs DB UPPERCASE)       */
+/* ------------------------------------------------------------------ */
+const HABILITATION_STATUT_OPTIONS: { value: string; label: string }[] = [
+  { value: "VALIDE", label: "Valide" },
+  { value: "A_RENOUVELER", label: "À renouveler" },
+  { value: "EN_COURS", label: "En cours" },
+  { value: "EXPIREE", label: "Expirée" },
+];
 
-interface QualificationWithStaff extends Qualification {
-  staff?: Staff;
-}
+const FORMATION_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "INTERNE", label: "Interne" },
+  { value: "EXTERNE", label: "Externe" },
+  { value: "DPC", label: "DPC" },
+  { value: "E_LEARNING", label: "E-learning" },
+];
 
-interface TrainingWithStaff extends Training {
-  staff?: Staff;
-}
+const FORMATION_STATUT_OPTIONS: { value: string; label: string }[] = [
+  { value: "PLANIFIEE", label: "Planifiée" },
+  { value: "REALISEE", label: "Réalisée" },
+  { value: "REPORTEE", label: "Reportée" },
+  { value: "ANNULEE", label: "Annulée" },
+];
+
+const ROLE_LABELS: Record<string, string> = {
+  TITULAIRE: "Titulaire",
+  PRAQ_ADJOINT: "PRAQ adjoint",
+  PHARMACIEN: "Pharmacien",
+  PREPARATEUR: "Préparateur",
+  VENDEUR: "Vendeur",
+  CAISSIER: "Caissier",
+  LIVREUR: "Livreur",
+  APPRENTI: "Apprenti",
+  TECHNICIEN: "Technicien",
+  RESPONSABLE: "Responsable",
+};
+
+const habilitationStatutVariant = (statut: string): BadgeVariant => {
+  switch (statut) {
+    case "VALIDE":
+      return "ok";
+    case "A_RENOUVELER":
+      return "wip";
+    case "EN_COURS":
+      return "plan";
+    case "EXPIREE":
+      return "crit";
+    default:
+      return "plan";
+  }
+};
 
 const TabFormations: React.FC = () => {
-  const [showAddTrainingModal, setShowAddTrainingModal] = useState(false);
-  const [showAddQualificationModal, setShowAddQualificationModal] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: "training" | "qualification" } | null>(null);
+  const [showAddFormationModal, setShowAddFormationModal] = useState(false);
+  const [showAddHabilitationModal, setShowAddHabilitationModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: "formation" | "habilitation" } | null>(null);
   const [filterStaff, setFilterStaff] = useState<string>("");
   const [filterSkill, setFilterSkill] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
 
-  const { data: staff, loading: staffLoading } = useSupabaseCrud<Staff>("staff", {
-    orderBy: { column: "name", ascending: true },
-    filters: { active: true },
+  // staff_lite : référentiel minimal des collaborateurs (prenom_nom, role, actif)
+  const { data: staff, loading: staffLoading } = useSupabaseCrud<StaffLite>("staff_lite", {
+    orderBy: { column: "prenom_nom", ascending: true },
+    filters: { actif: true },
   });
 
+  // habilitations : `collaborateur` est un texte (nom en clair), pas une FK
   const {
-    data: qualifications,
-    loading: qualificationsLoading,
-    create: createQualification,
-    update: updateQualification,
-    remove: removeQualification,
-    refresh: refreshQualifications,
-  } = useSupabaseCrud<Qualification>("qualifications", {
-    select: "*, staff(*)",
+    data: habilitations,
+    loading: habilitationsLoading,
+    create: createHabilitation,
+    update: updateHabilitation,
+    remove: removeHabilitation,
+    refresh: refreshHabilitations,
+  } = useSupabaseCrud<Habilitation>("habilitations", {
     orderBy: { column: "created_at", ascending: false },
   });
 
+  // formations : sessions collectives, `participants` = array de noms
   const {
-    data: trainings,
-    loading: trainingsLoading,
-    create: createTraining,
-    update: updateTraining,
-    remove: removeTraining,
-    refresh: refreshTrainings,
-  } = useSupabaseCrud<Training>("trainings", {
-    select: "*, staff(*)",
+    data: formations,
+    loading: formationsLoading,
+    create: createFormation,
+    update: updateFormation,
+    remove: removeFormation,
+    refresh: refreshFormations,
+  } = useSupabaseCrud<Formation>("formations", {
     orderBy: { column: "created_at", ascending: false },
   });
 
-  const [newTraining, setNewTraining] = useState<Partial<Training>>({
-    staff_id: "",
-    title: "",
-    type: "",
-    planned_at: "",
-    completed_at: null,
-    evaluation: null,
-    next_due: null,
+  const [newFormation, setNewFormation] = useState<Partial<FormationInsert>>({
+    titre: "",
+    type: "INTERNE",
+    statut: "PLANIFIEE",
+    date_formation: "",
+    formateur: "",
+    participants: [],
   });
 
-  const [newQualification, setNewQualification] = useState<Partial<Qualification>>({
-    staff_id: "",
-    skill_name: "",
-    obtained_at: "",
-    expires_at: null,
-    status: "Valide",
+  const [newHabilitation, setNewHabilitation] = useState<Partial<HabilitationInsert>>({
+    collaborateur: "",
+    competence: "",
+    poste: "",
+    date_obtention: "",
+    date_expiration: null,
+    statut: "VALIDE",
   });
 
   // KPI calculations
@@ -103,199 +148,176 @@ const TabFormations: React.FC = () => {
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(today.getDate() + 30);
 
-    const validQualifications = qualifications.filter((q) => {
-      if (!q.expires_at) return true;
-      return new Date(q.expires_at) > today;
-    });
-
-    const expiringQualifications = qualifications.filter((q) => {
-      if (!q.expires_at) return false;
-      const expiryDate = new Date(q.expires_at);
+    const expiringHabilitations = habilitations.filter((h) => {
+      if (!h.date_expiration) return false;
+      const expiryDate = new Date(h.date_expiration);
       return expiryDate > today && expiryDate <= thirtyDaysFromNow;
     });
 
-    const plannedTrainings = trainings.filter(
-      (t) => t.planned_at && !t.completed_at
-    );
+    const plannedFormations = formations.filter((f) => f.statut === "PLANIFIEE");
 
+    const staffNames = new Set(staff.map((s) => s.prenom_nom));
     const totalStaff = staff.length;
-    const staffWithQualifications = new Set(qualifications.map((q) => q.staff_id)).size;
-    const habilitePercent = totalStaff > 0 ? Math.round((staffWithQualifications / totalStaff) * 100) : 0;
+    const staffWithHabilitations = new Set(
+      habilitations.filter((h) => staffNames.has(h.collaborateur)).map((h) => h.collaborateur)
+    ).size;
+    const habilitePercent = totalStaff > 0 ? Math.round((staffWithHabilitations / totalStaff) * 100) : 0;
 
-    const totalSkills = new Set(qualifications.map((q) => q.skill_name)).size;
-    const totalPossibleQualifications = totalStaff * totalSkills;
+    const totalSkills = new Set(habilitations.map((h) => h.competence)).size;
+    const totalPossibleHabilitations = totalStaff * totalSkills;
     const coveragePercent =
-      totalPossibleQualifications > 0
-        ? Math.round((qualifications.length / totalPossibleQualifications) * 100)
+      totalPossibleHabilitations > 0
+        ? Math.round((habilitations.length / totalPossibleHabilitations) * 100)
         : 0;
 
     return {
       habilitePercent,
-      plannedTrainingsCount: plannedTrainings.length,
-      expiringCount: expiringQualifications.length,
+      staffWithHabilitations,
+      plannedFormationsCount: plannedFormations.length,
+      expiringCount: expiringHabilitations.length,
       coveragePercent,
     };
-  }, [staff, qualifications, trainings]);
+  }, [staff, habilitations, formations]);
 
-  // Skill matrix data
+  // Skill matrix data — jointure par nom en clair (collaborateur === prenom_nom)
   const skillMatrix = useMemo(() => {
-    const skills = Array.from(new Set(qualifications.map((q) => q.skill_name))).sort();
-    const today = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(today.getDate() + 30);
+    const skills = Array.from(new Set(habilitations.map((h) => h.competence))).sort();
 
     return staff.map((s) => {
-      const staffQuals = qualifications.filter((q) => q.staff_id === s.id);
-      const skillStatus: Record<string, BadgeVariant> = {};
+      const staffHabs = habilitations.filter((h) => h.collaborateur === s.prenom_nom);
+      const skillStatut: Record<string, string | null> = {};
 
       skills.forEach((skill) => {
-        const qual = staffQuals.find((q) => q.skill_name === skill);
-        if (!qual) {
-          skillStatus[skill] = "plan";
-        } else if (!qual.expires_at) {
-          skillStatus[skill] = "ok";
-        } else {
-          const expiryDate = new Date(qual.expires_at);
-          if (expiryDate < today) {
-            skillStatus[skill] = "crit";
-          } else if (expiryDate <= thirtyDaysFromNow) {
-            skillStatus[skill] = "wip";
-          } else {
-            skillStatus[skill] = "ok";
-          }
-        }
+        const hab = staffHabs.find((h) => h.competence === skill);
+        skillStatut[skill] = hab ? hab.statut : null;
       });
 
-      return { staff: s, skills, skillStatus };
+      return { staff: s, skills, skillStatut };
     });
-  }, [staff, qualifications]);
+  }, [staff, habilitations]);
 
-  // Chart data - Habilitations by cluster
-  const habilitationsByCluster = useMemo(() => {
-    const clusterMap: Record<string, number> = {};
-    staff.forEach((s) => {
-      const cluster = s.cluster || "Non défini";
-      const count = qualifications.filter((q) => q.staff_id === s.id).length;
-      clusterMap[cluster] = (clusterMap[cluster] || 0) + count;
+  // Chart data - Habilitations par rôle (staff_lite n'a pas de cluster)
+  const habilitationsByRole = useMemo(() => {
+    const roleByName = new Map(staff.map((s) => [s.prenom_nom, s.role]));
+    const roleMap: Record<string, number> = {};
+    habilitations.forEach((h) => {
+      const role = roleByName.get(h.collaborateur);
+      const label = role ? ROLE_LABELS[role] ?? role : "Hors effectif";
+      roleMap[label] = (roleMap[label] || 0) + 1;
     });
-    return Object.entries(clusterMap).map(([name, value]) => ({ name, value }));
-  }, [staff, qualifications]);
+    return Object.entries(roleMap).map(([name, value]) => ({ name, value }));
+  }, [staff, habilitations]);
 
-  // Chart data - Training status
-  const trainingStatusData = useMemo(() => {
-    const completed = trainings.filter((t) => t.completed_at).length;
-    const planned = trainings.filter((t) => t.planned_at && !t.completed_at).length;
-    const noDate = trainings.filter((t) => !t.planned_at && !t.completed_at).length;
+  // Chart data - Statut formations (enum DB)
+  const formationStatusData = useMemo(() => {
+    return FORMATION_STATUT_OPTIONS.map((opt) => ({
+      name: opt.label,
+      value: formations.filter((f) => f.statut === opt.value).length,
+    }));
+  }, [formations]);
 
-    return [
-      { name: "Réalisées", value: completed },
-      { name: "Planifiées", value: planned },
-      { name: "À planifier", value: noDate },
-    ];
-  }, [trainings]);
+  const COLORS = ["var(--color-muted)", "var(--color-ok)", "var(--color-wip)", "var(--color-crit)"];
 
-  const COLORS = ["var(--color-ok)", "var(--color-wip)", "var(--color-muted)"];
-
-  // Filtered qualifications
-  const filteredQualifications = useMemo(() => {
-    return (qualifications as QualificationWithStaff[]).filter((q) => {
-      if (filterStaff && q.staff_id !== filterStaff) return false;
-      if (filterSkill && !q.skill_name.toLowerCase().includes(filterSkill.toLowerCase())) return false;
-      if (filterStatus) {
-        const today = new Date();
-        const thirtyDays = new Date();
-        thirtyDays.setDate(today.getDate() + 30);
-        const expiryDate = q.expires_at ? new Date(q.expires_at) : null;
-
-        if (filterStatus === "valide" && expiryDate && expiryDate < today) return false;
-        if (filterStatus === "expiring" && (!expiryDate || expiryDate < today || expiryDate > thirtyDays))
-          return false;
-        if (filterStatus === "expired" && (!expiryDate || expiryDate >= today)) return false;
-      }
+  // Filtered habilitations
+  const filteredHabilitations = useMemo(() => {
+    return habilitations.filter((h) => {
+      if (filterStaff && h.collaborateur !== filterStaff) return false;
+      if (filterSkill && !h.competence.toLowerCase().includes(filterSkill.toLowerCase())) return false;
+      if (filterStatus && h.statut !== filterStatus) return false;
       return true;
     });
-  }, [qualifications, filterStaff, filterSkill, filterStatus]);
+  }, [habilitations, filterStaff, filterSkill, filterStatus]);
 
-  // Filtered trainings
-  const filteredTrainings = useMemo(() => {
-    return (trainings as TrainingWithStaff[]).filter((t) => {
-      if (filterStaff && t.staff_id !== filterStaff) return false;
+  // Filtered formations (par participant)
+  const filteredFormations = useMemo(() => {
+    return formations.filter((f) => {
+      if (filterStaff && !(f.participants || []).includes(filterStaff)) return false;
       return true;
     });
-  }, [trainings, filterStaff]);
+  }, [formations, filterStaff]);
 
-  // Qualification columns
-  const qualificationColumns: ColumnDef<QualificationWithStaff>[] = [
+  // Habilitation columns
+  const habilitationColumns: ColumnDef<Habilitation>[] = [
     {
-      key: "staff_name",
+      key: "collaborateur",
       label: "Collaborateur",
-      render: (q) => (q.staff as Staff)?.name || "N/A",
+      render: (h) => (
+        <EditableCell
+          value={h.collaborateur}
+          type="select"
+          options={staff.map((s) => ({ value: s.prenom_nom, label: s.prenom_nom }))}
+          onSave={(value) => {
+            const v = String(value).trim();
+            if (v) updateHabilitation(h.id, { collaborateur: v });
+          }}
+        />
+      ),
     },
     {
-      key: "skill_name",
+      key: "competence",
       label: "Compétence",
-      render: (q) => (
+      render: (h) => (
         <EditableCell
-          value={q.skill_name}
+          value={h.competence}
           type="text"
-          onSave={(value) => updateQualification(q.id, { skill_name: value as string })}
+          onSave={(value) => {
+            const v = String(value).trim();
+            if (v) updateHabilitation(h.id, { competence: v });
+          }}
         />
       ),
     },
     {
-      key: "obtained_at",
+      key: "poste",
+      label: "Poste",
+      render: (h) => (
+        <EditableCell
+          value={h.poste || ""}
+          type="text"
+          onSave={(value) => updateHabilitation(h.id, { poste: String(value).trim() || null })}
+        />
+      ),
+    },
+    {
+      key: "date_obtention",
       label: "Date obtention",
-      render: (q) => (
+      render: (h) => (
         <EditableCell
-          value={q.obtained_at}
+          value={h.date_obtention || ""}
           type="date"
-          onSave={(value) => updateQualification(q.id, { obtained_at: value as string })}
+          onSave={(value) => updateHabilitation(h.id, { date_obtention: String(value) || null })}
         />
       ),
     },
     {
-      key: "expires_at",
+      key: "date_expiration",
       label: "Date expiration",
-      render: (q) => (
+      render: (h) => (
         <EditableCell
-          value={q.expires_at || ""}
+          value={h.date_expiration || ""}
           type="date"
-          onSave={(value) => updateQualification(q.id, { expires_at: value as string || null })}
+          onSave={(value) => updateHabilitation(h.id, { date_expiration: String(value) || null })}
         />
       ),
     },
     {
-      key: "status",
+      key: "statut",
       label: "Statut",
-      render: (q) => {
-        const today = new Date();
-        const thirtyDays = new Date();
-        thirtyDays.setDate(today.getDate() + 30);
-        const expiryDate = q.expires_at ? new Date(q.expires_at) : null;
-
-        let variant: BadgeVariant = "ok";
-        let label = "Valide";
-
-        if (!expiryDate) {
-          variant = "ok";
-          label = "Valide";
-        } else if (expiryDate < today) {
-          variant = "crit";
-          label = "Expirée";
-        } else if (expiryDate <= thirtyDays) {
-          variant = "wip";
-          label = "Expire <30j";
-        }
-
-        return <Badge variant={variant}>{label}</Badge>;
-      },
+      render: (h) => (
+        <EditableCell
+          value={h.statut}
+          type="select"
+          options={HABILITATION_STATUT_OPTIONS}
+          onSave={(value) => updateHabilitation(h.id, { statut: String(value) })}
+        />
+      ),
     },
     {
       key: "actions",
       label: "",
-      render: (q) => (
+      render: (h) => (
         <button
-          onClick={() => setDeleteTarget({ id: q.id, type: "qualification" })}
+          onClick={() => setDeleteTarget({ id: h.id, type: "habilitation" })}
           className="text-crit hover:opacity-70 transition-opacity"
           aria-label="Supprimer"
         >
@@ -305,85 +327,119 @@ const TabFormations: React.FC = () => {
     },
   ];
 
-  // Training columns
-  const trainingColumns: ColumnDef<TrainingWithStaff>[] = [
+  // Formation columns
+  const formationColumns: ColumnDef<Formation>[] = [
     {
-      key: "staff_name",
-      label: "Collaborateur",
-      render: (t) => (t.staff as Staff)?.name || "N/A",
-    },
-    {
-      key: "title",
+      key: "titre",
       label: "Titre formation",
-      render: (t) => (
+      render: (f) => (
         <EditableCell
-          value={t.title}
+          value={f.titre}
           type="text"
-          onSave={(value) => updateTraining(t.id, { title: value as string })}
+          onSave={(value) => {
+            const v = String(value).trim();
+            if (v) updateFormation(f.id, { titre: v });
+          }}
         />
       ),
     },
     {
       key: "type",
       label: "Type",
-      render: (t) => (
+      render: (f) => (
         <EditableCell
-          value={t.type}
+          value={f.type}
+          type="select"
+          options={FORMATION_TYPE_OPTIONS}
+          onSave={(value) => updateFormation(f.id, { type: String(value) })}
+        />
+      ),
+    },
+    {
+      key: "statut",
+      label: "Statut",
+      render: (f) => (
+        <EditableCell
+          value={f.statut}
+          type="select"
+          options={FORMATION_STATUT_OPTIONS}
+          onSave={(value) => updateFormation(f.id, { statut: String(value) })}
+        />
+      ),
+    },
+    {
+      key: "date_formation",
+      label: "Date formation",
+      render: (f) => (
+        <EditableCell
+          value={f.date_formation || ""}
+          type="date"
+          onSave={(value) => updateFormation(f.id, { date_formation: String(value) || null })}
+        />
+      ),
+    },
+    {
+      key: "duree_heures",
+      label: "Durée (h)",
+      render: (f) => (
+        <EditableCell
+          value={f.duree_heures ?? ""}
+          type="number"
+          onSave={(value) =>
+            updateFormation(f.id, { duree_heures: Number(value) > 0 ? Number(value) : null })
+          }
+        />
+      ),
+    },
+    {
+      key: "formateur",
+      label: "Formateur",
+      render: (f) => (
+        <EditableCell
+          value={f.formateur || ""}
           type="text"
-          onSave={(value) => updateTraining(t.id, { type: value as string })}
+          onSave={(value) => updateFormation(f.id, { formateur: String(value).trim() || null })}
         />
       ),
     },
     {
-      key: "planned_at",
-      label: "Date planifiée",
-      render: (t) => (
+      key: "participants",
+      label: "Participants",
+      render: (f) => (
         <EditableCell
-          value={t.planned_at || ""}
-          type="date"
-          onSave={(value) => updateTraining(t.id, { planned_at: value as string || null })}
-        />
-      ),
-    },
-    {
-      key: "completed_at",
-      label: "Date réalisée",
-      render: (t) => (
-        <EditableCell
-          value={t.completed_at || ""}
-          type="date"
-          onSave={(value) => updateTraining(t.id, { completed_at: value as string || null })}
-        />
-      ),
-    },
-    {
-      key: "evaluation",
-      label: "Évaluation",
-      render: (t) => (
-        <EditableCell
-          value={t.evaluation || ""}
+          value={(f.participants || []).join(", ")}
           type="text"
-          onSave={(value) => updateTraining(t.id, { evaluation: value as string || null })}
+          onSave={(value) => {
+            const names = String(value)
+              .split(",")
+              .map((n) => n.trim())
+              .filter(Boolean);
+            updateFormation(f.id, {
+              participants: names.length > 0 ? names : null,
+              nb_participants: names.length > 0 ? names.length : null,
+            });
+          }}
         />
       ),
     },
     {
-      key: "next_due",
-      label: "Prochaine échéance",
-      render: (t) => (
-        <EditableCell
-          value={t.next_due || ""}
-          type="date"
-          onSave={(value) => updateTraining(t.id, { next_due: value as string || null })}
-        />
+      key: "attestation",
+      label: "Attestation",
+      render: (f) => (
+        <button
+          onClick={() => updateFormation(f.id, { attestation: !f.attestation })}
+          aria-label="Basculer attestation"
+        >
+          <Badge variant={f.attestation ? "ok" : "plan"}>{f.attestation ? "Oui" : "Non"}</Badge>
+        </button>
       ),
     },
     {
       key: "actions",
       label: "",
-      render: (t) => (
+      render: (f) => (
         <button
-          onClick={() => setDeleteTarget({ id: t.id, type: "training" })}
+          onClick={() => setDeleteTarget({ id: f.id, type: "formation" })}
           className="text-crit hover:opacity-70 transition-opacity"
           aria-label="Supprimer"
         >
@@ -393,53 +449,73 @@ const TabFormations: React.FC = () => {
     },
   ];
 
-  const handleAddTraining = async () => {
-    if (!newTraining.staff_id || !newTraining.title || !newTraining.type) return;
+  const handleAddFormation = async () => {
+    const titre = newFormation.titre?.trim();
+    const type = newFormation.type;
+    if (!titre || !type) return;
     try {
-      await createTraining(newTraining);
-      setShowAddTrainingModal(false);
-      setNewTraining({
-        staff_id: "",
-        title: "",
-        type: "",
-        planned_at: "",
-        completed_at: null,
-        evaluation: null,
-        next_due: null,
+      const participants = (newFormation.participants || []).filter(Boolean);
+      await createFormation({
+        titre,
+        type,
+        statut: newFormation.statut || "PLANIFIEE",
+        date_formation: newFormation.date_formation || null,
+        formateur: newFormation.formateur?.trim() || null,
+        participants: participants.length > 0 ? participants : null,
+        nb_participants: participants.length > 0 ? participants.length : null,
       });
-      refreshTrainings();
+      setShowAddFormationModal(false);
+      setNewFormation({
+        titre: "",
+        type: "INTERNE",
+        statut: "PLANIFIEE",
+        date_formation: "",
+        formateur: "",
+        participants: [],
+      });
+      refreshFormations();
     } catch (error) {
-      console.error("Error creating training:", error);
+      console.error("Error creating formation:", error);
     }
   };
 
-  const handleAddQualification = async () => {
-    if (!newQualification.staff_id || !newQualification.skill_name || !newQualification.obtained_at) return;
+  const handleAddHabilitation = async () => {
+    const collaborateur = newHabilitation.collaborateur;
+    const competence = newHabilitation.competence?.trim();
+    if (!collaborateur || !competence) return;
     try {
-      await createQualification(newQualification);
-      setShowAddQualificationModal(false);
-      setNewQualification({
-        staff_id: "",
-        skill_name: "",
-        obtained_at: "",
-        expires_at: null,
-        status: "Valide",
+      await createHabilitation({
+        collaborateur,
+        competence,
+        poste: newHabilitation.poste?.trim() || null,
+        date_obtention: newHabilitation.date_obtention || null,
+        date_expiration: newHabilitation.date_expiration || null,
+        statut: newHabilitation.statut || "VALIDE",
       });
-      refreshQualifications();
+      setShowAddHabilitationModal(false);
+      setNewHabilitation({
+        collaborateur: "",
+        competence: "",
+        poste: "",
+        date_obtention: "",
+        date_expiration: null,
+        statut: "VALIDE",
+      });
+      refreshHabilitations();
     } catch (error) {
-      console.error("Error creating qualification:", error);
+      console.error("Error creating habilitation:", error);
     }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      if (deleteTarget.type === "training") {
-        await removeTraining(deleteTarget.id);
-        refreshTrainings();
+      if (deleteTarget.type === "formation") {
+        await removeFormation(deleteTarget.id);
+        refreshFormations();
       } else {
-        await removeQualification(deleteTarget.id);
-        refreshQualifications();
+        await removeHabilitation(deleteTarget.id);
+        refreshHabilitations();
       }
       setDeleteTarget(null);
     } catch (error) {
@@ -447,7 +523,7 @@ const TabFormations: React.FC = () => {
     }
   };
 
-  const loading = staffLoading || qualificationsLoading || trainingsLoading;
+  const loading = staffLoading || habilitationsLoading || formationsLoading;
 
   if (loading) {
     return <div className="p-6 text-sec">Chargement...</div>;
@@ -461,12 +537,12 @@ const TabFormations: React.FC = () => {
           icon={<UsersIcon size={20} />}
           label="PERSONNEL HABILITÉ"
           value={`${kpis.habilitePercent}%`}
-          subtitle={`${new Set(qualifications.map((q) => q.staff_id)).size} / ${staff.length} collaborateurs`}
+          subtitle={`${kpis.staffWithHabilitations} / ${staff.length} collaborateurs`}
         />
         <KpiCard
           icon={<UsersIcon size={20} />}
           label="FORMATIONS PLANIFIÉES"
-          value={kpis.plannedTrainingsCount.toString()}
+          value={kpis.plannedFormationsCount.toString()}
           subtitle="À réaliser"
         />
         <KpiCard
@@ -502,17 +578,21 @@ const TabFormations: React.FC = () => {
             <tbody>
               {skillMatrix.map((row) => (
                 <tr key={row.staff.id} className="border-b border-brd hover:bg-elev transition-colors">
-                  <td className="p-3 font-medium sticky left-0 bg-card">{row.staff.name}</td>
-                  {row.skills.map((skill) => (
-                    <td key={skill} className="p-3">
-                      <Badge variant={row.skillStatus[skill]}>
-                        {row.skillStatus[skill] === "ok" && "OK"}
-                        {row.skillStatus[skill] === "wip" && "<30j"}
-                        {row.skillStatus[skill] === "crit" && "Exp"}
-                        {row.skillStatus[skill] === "plan" && "-"}
-                      </Badge>
-                    </td>
-                  ))}
+                  <td className="p-3 font-medium sticky left-0 bg-card">{row.staff.prenom_nom}</td>
+                  {row.skills.map((skill) => {
+                    const statut = row.skillStatut[skill];
+                    return (
+                      <td key={skill} className="p-3">
+                        <Badge variant={statut ? habilitationStatutVariant(statut) : "plan"}>
+                          {statut === "VALIDE" && "OK"}
+                          {statut === "A_RENOUVELER" && "Ren"}
+                          {statut === "EN_COURS" && "EC"}
+                          {statut === "EXPIREE" && "Exp"}
+                          {!statut && "-"}
+                        </Badge>
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -523,9 +603,9 @@ const TabFormations: React.FC = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <h2 className="text-h2 mb-4">Habilitations par cluster</h2>
+          <h2 className="text-h2 mb-4">Habilitations par rôle</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={habilitationsByCluster}>
+            <BarChart data={habilitationsByRole}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis dataKey="name" stroke="var(--color-secondary)" style={{ fontSize: 11 }} />
               <YAxis stroke="var(--color-secondary)" style={{ fontSize: 11 }} />
@@ -547,7 +627,7 @@ const TabFormations: React.FC = () => {
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={trainingStatusData}
+                data={formationStatusData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -556,7 +636,7 @@ const TabFormations: React.FC = () => {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {trainingStatusData.map((entry, index) => (
+                {formationStatusData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -585,8 +665,8 @@ const TabFormations: React.FC = () => {
             >
               <option value="">Tous</option>
               {staff.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
+                <option key={s.id} value={s.prenom_nom}>
+                  {s.prenom_nom}
                 </option>
               ))}
             </select>
@@ -609,9 +689,11 @@ const TabFormations: React.FC = () => {
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               <option value="">Tous</option>
-              <option value="valide">Valide</option>
-              <option value="expiring">Expire &lt;30j</option>
-              <option value="expired">Expirée</option>
+              {HABILITATION_STATUT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -621,79 +703,116 @@ const TabFormations: React.FC = () => {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-h2">Habilitations</h2>
-          <AddButton onClick={() => setShowAddQualificationModal(true)} label="Nouvelle habilitation" />
+          <AddButton onClick={() => setShowAddHabilitationModal(true)} label="Nouvelle habilitation" />
         </div>
-        <DataTable columns={qualificationColumns} data={filteredQualifications} />
+        <DataTable columns={habilitationColumns} data={filteredHabilitations} />
       </div>
 
       {/* Plan de formation Table */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-h2">Plan de formation</h2>
-          <AddButton onClick={() => setShowAddTrainingModal(true)} label="Nouvelle formation" />
+          <AddButton onClick={() => setShowAddFormationModal(true)} label="Nouvelle formation" />
         </div>
-        <DataTable columns={trainingColumns} data={filteredTrainings} />
+        <DataTable columns={formationColumns} data={filteredFormations} />
       </div>
 
-      {/* Add Training Modal */}
+      {/* Add Formation Modal */}
       <Modal
-        isOpen={showAddTrainingModal}
-        onClose={() => setShowAddTrainingModal(false)}
+        isOpen={showAddFormationModal}
+        onClose={() => setShowAddFormationModal(false)}
         title="Nouvelle formation"
       >
         <div className="space-y-5">
           <div>
-            <label className="block text-[13px] font-semibold text-sec mb-2">COLLABORATEUR *</label>
-            <select
-              value={newTraining.staff_id}
-              onChange={(e) => setNewTraining({ ...newTraining, staff_id: e.target.value })}
-              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-            >
-              <option value="">Sélectionner</option>
-              {staff.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
             <label className="block text-[13px] font-semibold text-sec mb-2">TITRE *</label>
             <input
               type="text"
-              value={newTraining.title}
-              onChange={(e) => setNewTraining({ ...newTraining, title: e.target.value })}
+              value={newFormation.titre || ""}
+              onChange={(e) => setNewFormation({ ...newFormation, titre: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
           <div>
             <label className="block text-[13px] font-semibold text-sec mb-2">TYPE *</label>
+            <select
+              value={newFormation.type || "INTERNE"}
+              onChange={(e) => setNewFormation({ ...newFormation, type: e.target.value })}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+            >
+              {FORMATION_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[13px] font-semibold text-sec mb-2">STATUT</label>
+            <select
+              value={newFormation.statut || "PLANIFIEE"}
+              onChange={(e) => setNewFormation({ ...newFormation, statut: e.target.value })}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+            >
+              {FORMATION_STATUT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[13px] font-semibold text-sec mb-2">DATE FORMATION</label>
             <input
-              type="text"
-              value={newTraining.type}
-              onChange={(e) => setNewTraining({ ...newTraining, type: e.target.value })}
+              type="date"
+              value={newFormation.date_formation || ""}
+              onChange={(e) => setNewFormation({ ...newFormation, date_formation: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
           <div>
-            <label className="block text-[13px] font-semibold text-sec mb-2">DATE PLANIFIÉE</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">FORMATEUR</label>
             <input
-              type="date"
-              value={newTraining.planned_at || ""}
-              onChange={(e) => setNewTraining({ ...newTraining, planned_at: e.target.value })}
+              type="text"
+              value={newFormation.formateur || ""}
+              onChange={(e) => setNewFormation({ ...newFormation, formateur: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
+          <div>
+            <label className="block text-[13px] font-semibold text-sec mb-2">PARTICIPANTS</label>
+            <select
+              multiple
+              size={6}
+              value={newFormation.participants || []}
+              onChange={(e) =>
+                setNewFormation({
+                  ...newFormation,
+                  participants: Array.from(e.target.selectedOptions).map((o) => o.value),
+                })
+              }
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+            >
+              {staff.map((s) => (
+                <option key={s.id} value={s.prenom_nom}>
+                  {s.prenom_nom}
+                </option>
+              ))}
+            </select>
+            <p className="text-[12px] text-mut mt-1.5">
+              Maintenir Ctrl (ou Cmd) pour sélectionner plusieurs collaborateurs.
+            </p>
+          </div>
           <div className="flex justify-end gap-3 pt-4">
             <button
-              onClick={() => setShowAddTrainingModal(false)}
+              onClick={() => setShowAddFormationModal(false)}
               className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
             >
               Annuler
             </button>
             <button
-              onClick={handleAddTraining}
-              disabled={!newTraining.staff_id || !newTraining.title || !newTraining.type}
+              onClick={handleAddFormation}
+              disabled={!newFormation.titre?.trim() || !newFormation.type}
               className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Créer
@@ -702,24 +821,24 @@ const TabFormations: React.FC = () => {
         </div>
       </Modal>
 
-      {/* Add Qualification Modal */}
+      {/* Add Habilitation Modal */}
       <Modal
-        isOpen={showAddQualificationModal}
-        onClose={() => setShowAddQualificationModal(false)}
+        isOpen={showAddHabilitationModal}
+        onClose={() => setShowAddHabilitationModal(false)}
         title="Nouvelle habilitation"
       >
         <div className="space-y-5">
           <div>
             <label className="block text-[13px] font-semibold text-sec mb-2">COLLABORATEUR *</label>
             <select
-              value={newQualification.staff_id}
-              onChange={(e) => setNewQualification({ ...newQualification, staff_id: e.target.value })}
+              value={newHabilitation.collaborateur || ""}
+              onChange={(e) => setNewHabilitation({ ...newHabilitation, collaborateur: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             >
               <option value="">Sélectionner</option>
               {staff.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
+                <option key={s.id} value={s.prenom_nom}>
+                  {s.prenom_nom}
                 </option>
               ))}
             </select>
@@ -728,17 +847,26 @@ const TabFormations: React.FC = () => {
             <label className="block text-[13px] font-semibold text-sec mb-2">COMPÉTENCE *</label>
             <input
               type="text"
-              value={newQualification.skill_name}
-              onChange={(e) => setNewQualification({ ...newQualification, skill_name: e.target.value })}
+              value={newHabilitation.competence || ""}
+              onChange={(e) => setNewHabilitation({ ...newHabilitation, competence: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
           <div>
-            <label className="block text-[13px] font-semibold text-sec mb-2">DATE OBTENTION *</label>
+            <label className="block text-[13px] font-semibold text-sec mb-2">POSTE</label>
+            <input
+              type="text"
+              value={newHabilitation.poste || ""}
+              onChange={(e) => setNewHabilitation({ ...newHabilitation, poste: e.target.value })}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-[13px] font-semibold text-sec mb-2">DATE OBTENTION</label>
             <input
               type="date"
-              value={newQualification.obtained_at}
-              onChange={(e) => setNewQualification({ ...newQualification, obtained_at: e.target.value })}
+              value={newHabilitation.date_obtention || ""}
+              onChange={(e) => setNewHabilitation({ ...newHabilitation, date_obtention: e.target.value })}
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
@@ -746,21 +874,37 @@ const TabFormations: React.FC = () => {
             <label className="block text-[13px] font-semibold text-sec mb-2">DATE EXPIRATION</label>
             <input
               type="date"
-              value={newQualification.expires_at || ""}
-              onChange={(e) => setNewQualification({ ...newQualification, expires_at: e.target.value || null })}
+              value={newHabilitation.date_expiration || ""}
+              onChange={(e) =>
+                setNewHabilitation({ ...newHabilitation, date_expiration: e.target.value || null })
+              }
               className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
             />
           </div>
+          <div>
+            <label className="block text-[13px] font-semibold text-sec mb-2">STATUT</label>
+            <select
+              value={newHabilitation.statut || "VALIDE"}
+              onChange={(e) => setNewHabilitation({ ...newHabilitation, statut: e.target.value })}
+              className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+            >
+              {HABILITATION_STATUT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex justify-end gap-3 pt-4">
             <button
-              onClick={() => setShowAddQualificationModal(false)}
+              onClick={() => setShowAddHabilitationModal(false)}
               className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
             >
               Annuler
             </button>
             <button
-              onClick={handleAddQualification}
-              disabled={!newQualification.staff_id || !newQualification.skill_name || !newQualification.obtained_at}
+              onClick={handleAddHabilitation}
+              disabled={!newHabilitation.collaborateur || !newHabilitation.competence?.trim()}
               className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Créer
@@ -775,7 +919,7 @@ const TabFormations: React.FC = () => {
           isOpen={!!deleteTarget}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
-          itemName={deleteTarget.type === "training" ? "cette formation" : "cette habilitation"}
+          itemName={deleteTarget.type === "formation" ? "cette formation" : "cette habilitation"}
         />
       )}
     </div>
