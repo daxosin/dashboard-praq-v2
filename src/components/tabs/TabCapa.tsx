@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from "react";
 import { useSupabaseCrud } from "@/lib/hooks/useSupabaseCrud";
-import type { Capa, Domain, CapaInsert } from "@/lib/database.types";
 import {
   KpiCard,
   DataTable,
@@ -31,51 +30,70 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const SOURCES = [
-  "Audit",
-  "Réclamation",
-  "Vigilance",
-  "Terrain",
-  "Auto-évaluation",
-  "Revue direction",
-] as const;
+/* ------------------------------------------------------------------ */
+/*  DB row shape (aligned on real Supabase `capa` table)              */
+/* ------------------------------------------------------------------ */
+type CapaRow = {
+  id: string;
+  reference: string | null;
+  titre: string;
+  type: "CORRECTIVE" | "PREVENTIVE";
+  source: "AUDIT" | "RECLAMATION" | "VIGILANCE" | "DYSFONCTIONNEMENT" | "REVUE" | "AUTRE" | null;
+  description: string | null;
+  responsable: string | null;
+  date_ouverture: string;
+  date_echeance: string | null;
+  date_cloture: string | null;
+  statut: "OUVERTE" | "EN_COURS" | "VERIFICATION" | "CLOSE";
+  priorite: "HAUTE" | "MOYENNE" | "BASSE" | null;
+  processus_id: string | null;
+  actions: string | null;
+  verification_efficacite: string | null;
+  notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
 
-const TYPES = [
-  "Non-conformité",
-  "Action corrective",
-  "Action préventive",
-  "Amélioration",
-  "Anomalie",
-  "Near miss",
-] as const;
+type ProcessusRow = {
+  id: string;
+  code: string | null;
+  nom: string;
+};
 
-const STATUSES = [
-  "Ouverte",
-  "En cours",
-  "Vérification efficacité",
-  "Clôturée",
-] as const;
+/* ------------------------------------------------------------------ */
+/*  Enum value <-> display label mapping                              */
+/* ------------------------------------------------------------------ */
+const SOURCE_OPTIONS: { value: CapaRow["source"]; label: string }[] = [
+  { value: "AUDIT", label: "Audit" },
+  { value: "RECLAMATION", label: "Réclamation" },
+  { value: "VIGILANCE", label: "Vigilance" },
+  { value: "DYSFONCTIONNEMENT", label: "Dysfonctionnement" },
+  { value: "REVUE", label: "Revue direction" },
+  { value: "AUTRE", label: "Autre" },
+];
 
-const ZONES = [
-  "PDA Robot 1",
-  "PDA Robot 2",
-  "Contrôle qualité",
-  "Conditionnement",
-  "Stock chambre froide",
-  "Stock ambiant",
-  "Stock stupéfiants",
-  "Officine comptoir",
-  "Officine back-office",
-  "Orthopédie",
-  "Luxe L'Écrin",
-  "Nature",
-  "Livraison véhicule 1",
-  "Livraison véhicule 2",
-  "Livraison véhicule 3",
-  "Cabine téléconsultation",
-  "Locaux techniques",
-  "Salle pause",
-] as const;
+const TYPE_OPTIONS: { value: CapaRow["type"]; label: string }[] = [
+  { value: "CORRECTIVE", label: "Corrective" },
+  { value: "PREVENTIVE", label: "Préventive" },
+];
+
+const STATUT_OPTIONS: { value: CapaRow["statut"]; label: string }[] = [
+  { value: "OUVERTE", label: "Ouverte" },
+  { value: "EN_COURS", label: "En cours" },
+  { value: "VERIFICATION", label: "Vérification efficacité" },
+  { value: "CLOSE", label: "Clôturée" },
+];
+
+const PRIORITE_OPTIONS: { value: CapaRow["priorite"]; label: string }[] = [
+  { value: "HAUTE", label: "Haute" },
+  { value: "MOYENNE", label: "Moyenne" },
+  { value: "BASSE", label: "Basse" },
+];
+
+const labelFor = <T extends string | null>(
+  opts: { value: T; label: string }[],
+  v: T,
+): string => opts.find((o) => o.value === v)?.label ?? String(v ?? "");
 
 const THEME_COLORS = {
   primary: "var(--accent)",
@@ -87,138 +105,158 @@ const THEME_COLORS = {
 
 const CHART_COLORS = ["#00FF88", "#FFB800", "#FF4444", "#00CCFF", "#CC88FF", "#FF8844"];
 
+const inputCls =
+  "w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all";
+const labelCls = "block text-[13px] font-semibold text-sec mb-2";
+
+/* ================================================================== */
 export function TabCapa() {
-  const { data: capas, loading: loadingCapas, create, update, remove } = useSupabaseCrud<Capa>("capas", {
-    orderBy: { column: "created_at", ascending: false },
+  const { data: capas, loading: loadingCapas, create, update, remove } = useSupabaseCrud<CapaRow>("capa", {
+    orderBy: { column: "date_ouverture", ascending: false },
   });
 
-  const { data: domains, loading: loadingDomains } = useSupabaseCrud<Domain>("domains", {
-    orderBy: { column: "name", ascending: true },
+  const { data: processus, loading: loadingProcessus } = useSupabaseCrud<ProcessusRow>("processus", {
+    orderBy: { column: "nom", ascending: true },
   });
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
-  const [filterDomain, setFilterDomain] = useState<string>("all");
+  const [filterProcessus, setFilterProcessus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
 
-  const [newCapa, setNewCapa] = useState<Partial<CapaInsert>>({
-    source: "Auto-évaluation",
-    type: "Non-conformité",
-    status: "Ouverte",
+  const [newCapa, setNewCapa] = useState<Partial<CapaRow>>({
+    titre: "",
+    source: "AUTRE",
+    type: "CORRECTIVE",
+    statut: "OUVERTE",
+    priorite: "MOYENNE",
     description: "",
   });
 
-  // Calculate KPIs
+  /* ---- KPIs ----------------------------------------------------- */
   const kpis = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const openCapas = capas.filter((c) => c.status !== "Clôturée");
-    const overdueCapas = openCapas.filter((c) => {
-      if (!c.due_date) return false;
-      const dueDate = new Date(c.due_date);
-      return dueDate < today;
+    const open = capas.filter((c) => c.statut !== "CLOSE");
+    const overdue = open.filter((c) => {
+      if (!c.date_echeance) return false;
+      return new Date(c.date_echeance) < today;
     });
-
-    const closedCapas = capas.filter((c) => c.status === "Clôturée");
-    const closureRate = capas.length > 0 ? (closedCapas.length / capas.length) * 100 : 0;
-
+    const closed = capas.filter((c) => c.statut === "CLOSE");
+    const closureRate = capas.length > 0 ? (closed.length / capas.length) * 100 : 0;
     const avgDelay =
-      closedCapas.length > 0
-        ? closedCapas.reduce((acc, c) => {
-            if (!c.created_at || !c.closed_at) return acc;
-            const created = new Date(c.created_at);
-            const closed = new Date(c.closed_at);
-            const days = Math.floor((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-            return acc + days;
-          }, 0) / closedCapas.length
+      closed.length > 0
+        ? closed.reduce((acc, c) => {
+            if (!c.date_ouverture || !c.date_cloture) return acc;
+            const op = new Date(c.date_ouverture);
+            const cl = new Date(c.date_cloture);
+            return acc + Math.floor((cl.getTime() - op.getTime()) / 86400000);
+          }, 0) / closed.length
         : 0;
 
     return {
-      totalOpen: openCapas.length,
-      overdue: overdueCapas.length,
+      totalOpen: open.length,
+      overdue: overdue.length,
       closureRate: Math.round(closureRate),
       avgDelay: Math.round(avgDelay),
-      overdueList: overdueCapas,
+      overdueList: overdue,
     };
   }, [capas]);
 
-  // Filter capas
+  /* ---- filters -------------------------------------------------- */
   const filteredCapas = useMemo(() => {
     return capas.filter((c) => {
-      if (filterStatus !== "all" && c.status !== filterStatus) return false;
+      if (filterStatus !== "all" && c.statut !== filterStatus) return false;
       if (filterSource !== "all" && c.source !== filterSource) return false;
-      if (filterDomain !== "all" && c.domain_id !== filterDomain) return false;
+      if (filterProcessus !== "all" && c.processus_id !== filterProcessus) return false;
       if (filterType !== "all" && c.type !== filterType) return false;
       return true;
     });
-  }, [capas, filterStatus, filterSource, filterDomain, filterType]);
+  }, [capas, filterStatus, filterSource, filterProcessus, filterType]);
 
-  // Analysis data: by source
+  /* ---- chart data ----------------------------------------------- */
   const analysisBySource = useMemo(() => {
     const counts: Record<string, number> = {};
     capas.forEach((c) => {
-      counts[c.source] = (counts[c.source] || 0) + 1;
+      const lbl = labelFor(SOURCE_OPTIONS, c.source);
+      counts[lbl] = (counts[lbl] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [capas]);
 
-  // Analysis data: by type
   const analysisByType = useMemo(() => {
     const counts: Record<string, number> = {};
     capas.forEach((c) => {
-      counts[c.type] = (counts[c.type] || 0) + 1;
+      const lbl = labelFor(TYPE_OPTIONS, c.type);
+      counts[lbl] = (counts[lbl] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [capas]);
 
-  // Trend data: CAPA opened vs closed per month
   const trendData = useMemo(() => {
-    const monthlyData: Record<string, { month: string; opened: number; closed: number }> = {};
-
+    const monthly: Record<string, { month: string; opened: number; closed: number }> = {};
     capas.forEach((c) => {
-      const createdMonth = c.created_at ? c.created_at.substring(0, 7) : "";
-      if (createdMonth) {
-        if (!monthlyData[createdMonth]) {
-          monthlyData[createdMonth] = { month: createdMonth, opened: 0, closed: 0 };
-        }
-        monthlyData[createdMonth].opened += 1;
+      if (c.date_ouverture) {
+        const m = c.date_ouverture.substring(0, 7);
+        monthly[m] = monthly[m] || { month: m, opened: 0, closed: 0 };
+        monthly[m].opened += 1;
       }
-
-      if (c.closed_at) {
-        const closedMonth = c.closed_at.substring(0, 7);
-        if (!monthlyData[closedMonth]) {
-          monthlyData[closedMonth] = { month: closedMonth, opened: 0, closed: 0 };
-        }
-        monthlyData[closedMonth].closed += 1;
+      if (c.date_cloture) {
+        const m = c.date_cloture.substring(0, 7);
+        monthly[m] = monthly[m] || { month: m, opened: 0, closed: 0 };
+        monthly[m].closed += 1;
       }
     });
-
-    return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
+    return Object.values(monthly).sort((a, b) => a.month.localeCompare(b.month));
   }, [capas]);
 
-  const domainMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    domains.forEach((d) => {
-      map[d.id] = d.name;
+  const processusMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    processus.forEach((p) => {
+      m[p.id] = p.nom;
     });
-    return map;
-  }, [domains]);
+    return m;
+  }, [processus]);
 
+  /* ---- handlers ------------------------------------------------- */
   const handleAdd = async () => {
+    setCreateError(null);
+    if (!newCapa.titre || !newCapa.titre.trim()) {
+      setCreateError("L'objet (titre) est obligatoire.");
+      return;
+    }
     try {
-      await create(newCapa as CapaInsert);
+      const payload: Partial<CapaRow> = {
+        titre: newCapa.titre.trim(),
+        type: newCapa.type ?? "CORRECTIVE",
+        source: newCapa.source ?? "AUTRE",
+        statut: newCapa.statut ?? "OUVERTE",
+        priorite: newCapa.priorite ?? "MOYENNE",
+        description: newCapa.description?.trim() || null,
+        responsable: newCapa.responsable?.trim() || null,
+        date_echeance: newCapa.date_echeance || null,
+        processus_id: newCapa.processus_id || null,
+        actions: newCapa.actions?.trim() || null,
+        notes: newCapa.notes?.trim() || null,
+      };
+      await create(payload);
       setShowAddModal(false);
       setNewCapa({
-        source: "Auto-évaluation",
-        type: "Non-conformité",
-        status: "Ouverte",
+        titre: "",
+        source: "AUTRE",
+        type: "CORRECTIVE",
+        statut: "OUVERTE",
+        priorite: "MOYENNE",
         description: "",
       });
-    } catch (error) {
-      console.error("Error creating CAPA:", error);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur inconnue lors de la création.";
+      setCreateError(msg);
+      console.error("Error creating CAPA:", err);
     }
   };
 
@@ -227,41 +265,60 @@ export function TabCapa() {
     try {
       await remove(deleteId);
       setDeleteId(null);
-    } catch (error) {
-      console.error("Error deleting CAPA:", error);
+    } catch (err) {
+      console.error("Error deleting CAPA:", err);
     }
   };
 
-  const columns: ColumnDef<Capa>[] = [
+  /* ---- columns -------------------------------------------------- */
+  const columns: ColumnDef<CapaRow>[] = [
     {
-      key: "id",
-      label: "ID",
-      render: (capa) => (
+      key: "reference",
+      label: "Réf.",
+      render: (c) => (
         <span className="text-xs font-mono text-accent">
-          CAPA-{capa.id.substring(0, 4).toUpperCase()}
+          {c.reference || `CAPA-${c.id.substring(0, 4).toUpperCase()}`}
         </span>
+      ),
+    },
+    {
+      key: "titre",
+      label: "Objet",
+      render: (c) => (
+        <EditableCell
+          value={c.titre}
+          type="text"
+          onSave={async (v) => {
+            const s = String(v).trim();
+            if (s) await update(c.id, { titre: s });
+          }}
+        />
       ),
     },
     {
       key: "source",
       label: "Source",
-      render: (capa) => <Badge variant="plan">{capa.source}</Badge>,
+      render: (c) => <Badge variant="plan">{labelFor(SOURCE_OPTIONS, c.source)}</Badge>,
     },
     {
       key: "type",
       label: "Type",
-      render: (capa) => <Badge variant={capa.type === "Non-conformité" ? "crit" : "wip"}>{capa.type}</Badge>,
+      render: (c) => (
+        <Badge variant={c.type === "CORRECTIVE" ? "crit" : "wip"}>
+          {labelFor(TYPE_OPTIONS, c.type)}
+        </Badge>
+      ),
     },
     {
-      key: "domain_id",
-      label: "Domaine",
-      render: (capa) => (
+      key: "processus_id",
+      label: "Processus",
+      render: (c) => (
         <EditableCell
-          value={capa.domain_id || ""}
+          value={c.processus_id || ""}
           type="select"
-          options={domains.map((d) => ({ value: d.id, label: d.name }))}
-          onSave={async (value) => {
-            await update(capa.id, { domain_id: String(value) });
+          options={processus.map((p) => ({ value: p.id, label: p.nom }))}
+          onSave={async (v) => {
+            await update(c.id, { processus_id: String(v) || null });
           }}
         />
       ),
@@ -269,105 +326,107 @@ export function TabCapa() {
     {
       key: "description",
       label: "Description",
-      render: (capa) => (
+      render: (c) => (
         <EditableCell
-          value={capa.description}
+          value={c.description || ""}
           type="text"
-          onSave={async (value) => {
-            await update(capa.id, { description: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "root_cause",
-      label: "Cause racine",
-      render: (capa) => (
-        <EditableCell
-          value={capa.root_cause || ""}
-          type="text"
-          onSave={async (value) => {
-            await update(capa.id, { root_cause: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "action",
-      label: "Action corrective",
-      render: (capa) => (
-        <EditableCell
-          value={capa.action || ""}
-          type="text"
-          onSave={async (value) => {
-            await update(capa.id, { action: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "owner",
-      label: "Responsable",
-      render: (capa) => (
-        <EditableCell
-          value={capa.owner || ""}
-          type="text"
-          onSave={async (value) => {
-            await update(capa.id, { owner: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "due_date",
-      label: "Échéance",
-      render: (capa) => (
-        <EditableCell
-          value={capa.due_date || ""}
-          type="date"
-          onSave={async (value) => {
-            await update(capa.id, { due_date: String(value) });
-          }}
-        />
-      ),
-    },
-    {
-      key: "status",
-      label: "Statut",
-      render: (capa) => (
-        <EditableCell
-          value={capa.status}
-          type="select"
-          options={STATUSES.map((s) => ({ value: s, label: s }))}
-          onSave={async (value) => {
-            const updates: any = { status: value };
-            if (value === "Clôturée" && !capa.closed_at) {
-              updates.closed_at = new Date().toISOString();
-            }
-            await update(capa.id, updates);
-          }}
-        />
-      ),
-    },
-    {
-      key: "efficacy_result",
-      label: "Efficacité",
-      render: (capa) => (
-        <EditableCell
-          value={capa.efficacy_result || ""}
-          type="text"
-          onSave={async (value) => {
-            await update(capa.id, { efficacy_result: String(value) });
+          onSave={async (v) => {
+            await update(c.id, { description: String(v) || null });
           }}
         />
       ),
     },
     {
       key: "actions",
+      label: "Actions correctives",
+      render: (c) => (
+        <EditableCell
+          value={c.actions || ""}
+          type="text"
+          onSave={async (v) => {
+            await update(c.id, { actions: String(v) || null });
+          }}
+        />
+      ),
+    },
+    {
+      key: "responsable",
+      label: "Responsable",
+      render: (c) => (
+        <EditableCell
+          value={c.responsable || ""}
+          type="text"
+          onSave={async (v) => {
+            await update(c.id, { responsable: String(v) || null });
+          }}
+        />
+      ),
+    },
+    {
+      key: "date_echeance",
+      label: "Échéance",
+      render: (c) => (
+        <EditableCell
+          value={c.date_echeance || ""}
+          type="date"
+          onSave={async (v) => {
+            await update(c.id, { date_echeance: String(v) || null });
+          }}
+        />
+      ),
+    },
+    {
+      key: "priorite",
+      label: "Priorité",
+      render: (c) => (
+        <EditableCell
+          value={c.priorite || ""}
+          type="select"
+          options={PRIORITE_OPTIONS.map((o) => ({ value: o.value as string, label: o.label }))}
+          onSave={async (v) => {
+            await update(c.id, { priorite: (String(v) || null) as CapaRow["priorite"] });
+          }}
+        />
+      ),
+    },
+    {
+      key: "statut",
+      label: "Statut",
+      render: (c) => (
+        <EditableCell
+          value={c.statut}
+          type="select"
+          options={STATUT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+          onSave={async (v) => {
+            const newStatut = String(v) as CapaRow["statut"];
+            const updates: Partial<CapaRow> = { statut: newStatut };
+            if (newStatut === "CLOSE" && !c.date_cloture) {
+              updates.date_cloture = new Date().toISOString().substring(0, 10);
+            }
+            await update(c.id, updates);
+          }}
+        />
+      ),
+    },
+    {
+      key: "verification_efficacite",
+      label: "Vérif. efficacité",
+      render: (c) => (
+        <EditableCell
+          value={c.verification_efficacite || ""}
+          type="text"
+          onSave={async (v) => {
+            await update(c.id, { verification_efficacite: String(v) || null });
+          }}
+        />
+      ),
+    },
+    {
+      key: "id",
       label: "",
-      render: (capa) => (
+      render: (c) => (
         <button
-          onClick={() => setDeleteId(capa.id)}
+          onClick={() => setDeleteId(c.id)}
           className="p-1.5 text-mut hover:text-red transition-colors"
           title="Supprimer"
         >
@@ -377,7 +436,7 @@ export function TabCapa() {
     },
   ];
 
-  if (loadingCapas || loadingDomains) {
+  if (loadingCapas || loadingProcessus) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-mut">Chargement...</p>
@@ -389,42 +448,21 @@ export function TabCapa() {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          icon={<ZapIcon size={20} />}
-          label="Total ouvertes"
-          value={kpis.totalOpen.toString()}
-          subtitle="CAPA non clôturées"
-        />
-        <KpiCard
-          icon={<ZapIcon size={20} />}
-          label="En retard"
-          value={kpis.overdue.toString()}
-          subtitle="Action requise"
-          accent="amber"
-        />
-        <KpiCard
-          icon={<ZapIcon size={20} />}
-          label="Taux clôture"
-          value={`${kpis.closureRate}%`}
-          subtitle="Clôturées / Total"
-        />
-        <KpiCard
-          icon={<ZapIcon size={20} />}
-          label="Délai moyen"
-          value={`${kpis.avgDelay}j`}
-          subtitle="Ouverture → Clôture"
-        />
+        <KpiCard icon={<ZapIcon size={20} />} label="Total ouvertes" value={kpis.totalOpen.toString()} subtitle="CAPA non clôturées" />
+        <KpiCard icon={<ZapIcon size={20} />} label="En retard" value={kpis.overdue.toString()} subtitle="Action requise" accent="amber" />
+        <KpiCard icon={<ZapIcon size={20} />} label="Taux clôture" value={`${kpis.closureRate}%`} subtitle="Clôturées / Total" />
+        <KpiCard icon={<ZapIcon size={20} />} label="Délai moyen" value={`${kpis.avgDelay}j`} subtitle="Ouverture → Clôture" />
       </div>
 
-      {/* Overdue Alerts */}
+      {/* Overdue alerts */}
       {kpis.overdueList.length > 0 && (
         <div className="space-y-2">
-          {kpis.overdueList.map((capa) => (
+          {kpis.overdueList.map((c) => (
             <AlertLine
-              key={capa.id}
+              key={c.id}
               severity="red"
-              message={`CAPA ${capa.id.substring(0, 4).toUpperCase()} en retard — ${capa.description.substring(0, 80)}...`}
-              href={`#capa-${capa.id}`}
+              message={`CAPA ${c.reference || c.id.substring(0, 4).toUpperCase()} en retard — ${c.titre.substring(0, 80)}`}
+              href={`#capa-${c.id}`}
             />
           ))}
         </div>
@@ -432,128 +470,64 @@ export function TabCapa() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text"
-        >
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text">
           <option value="all">Tous statuts</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
+          {STATUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-
-        <select
-          value={filterSource}
-          onChange={(e) => setFilterSource(e.target.value)}
-          className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text"
-        >
+        <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text">
           <option value="all">Toutes sources</option>
-          {SOURCES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
+          {SOURCE_OPTIONS.map((o) => <option key={o.value as string} value={o.value as string}>{o.label}</option>)}
         </select>
-
-        <select
-          value={filterDomain}
-          onChange={(e) => setFilterDomain(e.target.value)}
-          className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text"
-        >
-          <option value="all">Tous domaines</option>
-          {domains.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
+        <select value={filterProcessus} onChange={(e) => setFilterProcessus(e.target.value)} className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text">
+          <option value="all">Tous processus</option>
+          {processus.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
         </select>
-
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text"
-        >
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-4 py-2.5 bg-card border border-brd rounded-xl text-[14px] text-text">
           <option value="all">Tous types</option>
-          {TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
+          {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-
         <div className="ml-auto">
-          <AddButton onClick={() => setShowAddModal(true)} />
+          <AddButton onClick={() => { setCreateError(null); setShowAddModal(true); }} />
         </div>
       </div>
 
-      {/* Data Table */}
       <DataTable columns={columns} data={filteredCapas} />
 
-      {/* Charts Section */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Analysis by Source */}
         <div className="bg-card border border-brd rounded-xl p-6">
           <h3 className="text-sm font-semibold text-text mb-4">Analyse par source</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie
-                data={analysisBySource}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {analysisBySource.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                ))}
+              <Pie data={analysisBySource} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} outerRadius={80} dataKey="value">
+                {analysisBySource.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
               </Pie>
               <Tooltip />
             </PieChart>
           </ResponsiveContainer>
         </div>
-
-        {/* Analysis by Type */}
         <div className="bg-card border border-brd rounded-xl p-6">
           <h3 className="text-sm font-semibold text-text mb-4">Analyse par type</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={analysisByType}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 11 }} angle={-15} textAnchor="end" height={80} />
-              <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--card-bg)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "4px",
-                }}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--brd)" />
+              <XAxis dataKey="name" tick={{ fill: "var(--mut)", fontSize: 11 }} />
+              <YAxis tick={{ fill: "var(--mut)", fontSize: 11 }} />
+              <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--brd)", borderRadius: "12px" }} />
               <Bar dataKey="value" fill={THEME_COLORS.primary} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Trend Chart */}
       <div className="bg-card border border-brd rounded-xl p-6">
         <h3 className="text-sm font-semibold text-text mb-4">Tendance mensuelle</h3>
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={trendData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="month" tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
-            <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "var(--card-bg)",
-                border: "1px solid var(--border)",
-                borderRadius: "4px",
-              }}
-            />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--brd)" />
+            <XAxis dataKey="month" tick={{ fill: "var(--mut)", fontSize: 11 }} />
+            <YAxis tick={{ fill: "var(--mut)", fontSize: 11 }} />
+            <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--brd)", borderRadius: "12px" }} />
             <Legend />
             <Line type="monotone" dataKey="opened" stroke={THEME_COLORS.grn} name="Ouvertes" strokeWidth={2} />
             <Line type="monotone" dataKey="closed" stroke={THEME_COLORS.amb} name="Clôturées" strokeWidth={2} />
@@ -561,170 +535,128 @@ export function TabCapa() {
         </ResponsiveContainer>
       </div>
 
-      {/* Add Modal */}
+      {/* Add modal */}
       {showAddModal && (
-        <Modal
-          isOpen={showAddModal}
-          title="Nouvelle CAPA"
-          onClose={() => setShowAddModal(false)}
-        >
+        <Modal isOpen={showAddModal} title="Nouvelle CAPA" onClose={() => setShowAddModal(false)}>
           <div className="space-y-5">
             <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">Source</label>
-              <select
-                value={newCapa.source}
-                onChange={(e) => setNewCapa({ ...newCapa, source: e.target.value as any })}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-              >
-                {SOURCES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">Type</label>
-              <select
-                value={newCapa.type}
-                onChange={(e) => setNewCapa({ ...newCapa, type: e.target.value as any })}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-              >
-                {TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">Domaine</label>
-              <select
-                value={newCapa.domain_id || ""}
-                onChange={(e) => setNewCapa({ ...newCapa, domain_id: e.target.value })}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-              >
-                <option value="">Sélectionner un domaine</option>
-                {domains.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">
-                Description *
-              </label>
-              <textarea
-                value={newCapa.description}
-                onChange={(e) => setNewCapa({ ...newCapa, description: e.target.value })}
-                rows={4}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
-                placeholder="Description détaillée de la non-conformité ou action..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">
-                Cause racine
-              </label>
-              <textarea
-                value={newCapa.root_cause || ""}
-                onChange={(e) => setNewCapa({ ...newCapa, root_cause: e.target.value })}
-                rows={2}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
-                placeholder="Analyse 5 pourquoi, ishikawa..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-sec mb-2">
-                Action corrective
-              </label>
-              <textarea
-                value={newCapa.action || ""}
-                onChange={(e) => setNewCapa({ ...newCapa, action: e.target.value })}
-                rows={2}
-                className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all resize-none"
-                placeholder="Plan d'action pour traiter la cause..."
+              <label className={labelCls}>Objet (titre) *</label>
+              <input
+                type="text"
+                value={newCapa.titre || ""}
+                onChange={(e) => setNewCapa({ ...newCapa, titre: e.target.value })}
+                className={inputCls}
+                placeholder="Ex : Sécurisation procédure retrait de lot"
+                autoFocus
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[13px] font-semibold text-sec mb-2">
-                  Responsable
-                </label>
+                <label className={labelCls}>Source</label>
+                <select value={newCapa.source ?? "AUTRE"} onChange={(e) => setNewCapa({ ...newCapa, source: e.target.value as CapaRow["source"] })} className={inputCls}>
+                  {SOURCE_OPTIONS.map((o) => <option key={o.value as string} value={o.value as string}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Type</label>
+                <select value={newCapa.type ?? "CORRECTIVE"} onChange={(e) => setNewCapa({ ...newCapa, type: e.target.value as CapaRow["type"] })} className={inputCls}>
+                  {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Priorité</label>
+                <select value={newCapa.priorite ?? "MOYENNE"} onChange={(e) => setNewCapa({ ...newCapa, priorite: e.target.value as CapaRow["priorite"] })} className={inputCls}>
+                  {PRIORITE_OPTIONS.map((o) => <option key={o.value as string} value={o.value as string}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Statut</label>
+                <select value={newCapa.statut ?? "OUVERTE"} onChange={(e) => setNewCapa({ ...newCapa, statut: e.target.value as CapaRow["statut"] })} className={inputCls}>
+                  {STATUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>Processus</label>
+              <select value={newCapa.processus_id || ""} onChange={(e) => setNewCapa({ ...newCapa, processus_id: e.target.value || null })} className={inputCls}>
+                <option value="">Aucun processus rattaché</option>
+                {processus.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className={labelCls}>Description</label>
+              <textarea
+                value={newCapa.description || ""}
+                onChange={(e) => setNewCapa({ ...newCapa, description: e.target.value })}
+                rows={3}
+                className={`${inputCls} resize-none`}
+                placeholder="Contexte, faits constatés, impact..."
+              />
+            </div>
+
+            <div>
+              <label className={labelCls}>Actions correctives</label>
+              <textarea
+                value={newCapa.actions || ""}
+                onChange={(e) => setNewCapa({ ...newCapa, actions: e.target.value })}
+                rows={2}
+                className={`${inputCls} resize-none`}
+                placeholder="Plan d'action prévu..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Responsable</label>
                 <input
                   type="text"
-                  value={newCapa.owner || ""}
-                  onChange={(e) => setNewCapa({ ...newCapa, owner: e.target.value })}
-                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                  value={newCapa.responsable || ""}
+                  onChange={(e) => setNewCapa({ ...newCapa, responsable: e.target.value })}
+                  className={inputCls}
                   placeholder="Nom du responsable"
                 />
               </div>
-
               <div>
-                <label className="block text-[13px] font-semibold text-sec mb-2">Échéance</label>
+                <label className={labelCls}>Échéance</label>
                 <input
                   type="date"
-                  value={newCapa.due_date || ""}
-                  onChange={(e) => setNewCapa({ ...newCapa, due_date: e.target.value })}
-                  className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                  value={newCapa.date_echeance || ""}
+                  onChange={(e) => setNewCapa({ ...newCapa, date_echeance: e.target.value })}
+                  className={inputCls}
                 />
               </div>
             </div>
 
-            {newCapa.source === "Terrain" && (
-              <>
-                <div>
-                  <label className="block text-[13px] font-semibold text-sec mb-2">Zone</label>
-                  <select
-                    value={newCapa.terrain_zone || ""}
-                    onChange={(e) => setNewCapa({ ...newCapa, terrain_zone: e.target.value })}
-                    className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                  >
-                    <option value="">Sélectionner une zone</option>
-                    {ZONES.map((z) => (
-                      <option key={z} value={z}>
-                        {z}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div>
+              <label className={labelCls}>Notes</label>
+              <textarea
+                value={newCapa.notes || ""}
+                onChange={(e) => setNewCapa({ ...newCapa, notes: e.target.value })}
+                rows={2}
+                className={`${inputCls} resize-none`}
+                placeholder="Notes complémentaires..."
+              />
+            </div>
 
-                <div>
-                  <label className="block text-[13px] font-semibold text-sec mb-2">
-                    Gravité ressentie
-                  </label>
-                  <select
-                    value={newCapa.terrain_severity || ""}
-                    onChange={(e) => setNewCapa({ ...newCapa, terrain_severity: e.target.value })}
-                    className="w-full px-4 py-3 bg-bg border border-brd rounded-xl text-[15px] text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-                  >
-                    <option value="">Non renseignée</option>
-                    <option value="Faible">Faible</option>
-                    <option value="Moyenne">Moyenne</option>
-                    <option value="Élevée">Élevée</option>
-                  </select>
-                </div>
-              </>
+            {createError && (
+              <div className="px-4 py-3 bg-red/10 border border-red/40 rounded-xl text-[13px] text-red">
+                {createError}
+              </div>
             )}
 
             <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]"
-              >
+              <button onClick={() => setShowAddModal(false)} className="px-6 py-3 text-sec hover:text-text rounded-xl text-[15px]">
                 Annuler
               </button>
               <button
                 onClick={handleAdd}
-                disabled={!newCapa.description}
+                disabled={!newCapa.titre || !newCapa.titre.trim()}
                 className="px-6 py-3 bg-accent text-[#000] rounded-xl font-bold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Créer
@@ -734,7 +666,6 @@ export function TabCapa() {
         </Modal>
       )}
 
-      {/* Delete Confirmation */}
       {deleteId && (
         <ConfirmDelete
           isOpen={!!deleteId}
