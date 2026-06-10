@@ -3,6 +3,7 @@
 import React from "react";
 import { useAlerts } from "@/lib/hooks/useAlerts";
 import { useSmqScore } from "@/lib/hooks/useSmqScore";
+import { usePhsqLatest } from "@/lib/hooks/usePhsqLatest";
 import { useSupabaseCrud } from "@/lib/hooks/useSupabaseCrud";
 import {
   ScoreGauge,
@@ -18,132 +19,107 @@ import {
   SearchIcon,
   MsgIcon,
 } from "@/components/icons";
-import { TABS } from "@/lib/types";
+import type {
+  Processus,
+  Sop,
+  Capa,
+  Habilitation,
+  Equipement,
+  Maintenance,
+  Audit,
+  Reclamation,
+  KpiHistory,
+} from "@/lib/db-rows";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-interface Domain {
-  id: string;
-  name: string;
-  process_type: string;
-}
-
-interface SOP {
-  id: string;
-  status: string;
-  domain_id: string;
-}
-
-interface CAPA {
-  id: string;
-  status: string;
-  due_date: string | null;
-}
-
-interface Qualification {
-  id: string;
-  status: string;
-  expires_at: string | null;
-}
-
-interface Equipment {
-  id: string;
-  status: string;
-}
-
-interface Maintenance {
-  id: string;
-  equipment_id: string;
-  next_due_at: string | null;
-  status: string;
-}
-
-interface Audit {
-  id: string;
-  status: string;
-}
-
-interface Complaint {
-  id: string;
-  status: string;
-  created_at: string;
-}
+const DAY_MS = 1000 * 60 * 60 * 24;
 
 export const TabTableauDeBord: React.FC = () => {
   const { alerts, loading: alertsLoading } = useAlerts();
-  const { score, loading: scoreLoading } = useSmqScore();
-  const { data: domains } = useSupabaseCrud<Domain>("domains");
-  const { data: sops } = useSupabaseCrud<SOP>("sops");
-  const { data: capas } = useSupabaseCrud<CAPA>("capas");
-  const { data: qualifications } = useSupabaseCrud<Qualification>("qualifications");
-  const { data: equipment } = useSupabaseCrud<Equipment>("equipment");
+  const { score, loading: scoreLoading } = useSmqScore("GLOBAL");
+  const { snapshot: phsq } = usePhsqLatest();
+  const { data: processus } = useSupabaseCrud<Processus>("processus", {
+    orderBy: { column: "code", ascending: true },
+  });
+  const { data: sops } = useSupabaseCrud<Sop>("sops");
+  const { data: capas } = useSupabaseCrud<Capa>("capa");
+  const { data: habilitations } = useSupabaseCrud<Habilitation>("habilitations");
+  const { data: equipements } = useSupabaseCrud<Equipement>("equipements");
   const { data: maintenance } = useSupabaseCrud<Maintenance>("maintenance");
   const { data: audits } = useSupabaseCrud<Audit>("audits");
-  const { data: complaints } = useSupabaseCrud<Complaint>("complaints");
+  const { data: reclamations } = useSupabaseCrud<Reclamation>("reclamations");
+  const { data: kpiHistory } = useSupabaseCrud<KpiHistory>("kpi_history", {
+    filters: { perimetre: "GLOBAL" },
+    orderBy: { column: "date_calcul", ascending: true },
+  });
 
-  // Calculs KPI
-  const sopsValides = sops.filter((s) => s.status === "Validé").length;
-  const sopsEnCours = sops.filter((s) => s.status === "En cours").length;
-  const sopsPlanifiees = sops.filter((s) => s.status === "Planifié").length;
+  // Calculs KPI (enums réels du schéma prod)
+  const sopsEnVigueur = sops.filter((s) => s.statut === "EN_VIGUEUR").length;
+  const sopsBrouillon = sops.filter((s) => s.statut === "BROUILLON").length;
+  const sopsAReviser = sops.filter(
+    (s) => s.statut === "A_REVISER" || s.statut === "EXPIREE"
+  ).length;
 
-  const capasOuvertes = capas.filter((c) => c.status !== "Clôturée").length;
+  const capasOuvertes = capas.filter((c) => c.statut !== "CLOSE").length;
   const capasEnRetard = capas.filter(
     (c) =>
-      c.status !== "Clôturée" &&
-      c.due_date &&
-      new Date(c.due_date) < new Date()
+      c.statut !== "CLOSE" &&
+      c.date_echeance &&
+      new Date(c.date_echeance) < new Date()
   ).length;
 
-  const habilitationsValides = qualifications.filter(
-    (q) => q.status === "Valide"
+  const habilitationsValides = habilitations.filter(
+    (h) => h.statut === "VALIDE"
   ).length;
   const habilitationsPct =
-    qualifications.length > 0
-      ? Math.round((habilitationsValides / qualifications.length) * 100)
+    habilitations.length > 0
+      ? Math.round((habilitationsValides / habilitations.length) * 100)
       : 0;
-  const habilitationsExpiring = qualifications.filter((q) => {
-    if (!q.expires_at) return false;
-    const days =
-      (new Date(q.expires_at).getTime() - new Date().getTime()) /
-      (1000 * 60 * 60 * 24);
+  const habilitationsExpiring = habilitations.filter((h) => {
+    if (!h.date_expiration) return false;
+    const days = (new Date(h.date_expiration).getTime() - Date.now()) / DAY_MS;
     return days > 0 && days <= 30;
   }).length;
 
-  const equipementsConformes = equipment.filter((e) => e.status === "Conforme")
-    .length;
+  const equipementsConformes = equipements.filter(
+    (e) => e.statut === "CONFORME"
+  ).length;
   const equipementsPct =
-    equipment.length > 0
-      ? Math.round((equipementsConformes / equipment.length) * 100)
+    equipements.length > 0
+      ? Math.round((equipementsConformes / equipements.length) * 100)
       : 0;
-  const maintenanceDue = maintenance.filter((m) => {
-    if (!m.next_due_at) return false;
-    return new Date(m.next_due_at) < new Date();
-  }).length;
+  const maintenanceDue = maintenance.filter(
+    (m) =>
+      m.statut === "PLANIFIEE" &&
+      m.date_planifiee &&
+      new Date(m.date_planifiee) < new Date()
+  ).length;
 
-  const auditsRealises = audits.filter((a) => a.status === "Réalisé").length;
-  const auditsPlanifies = audits.length;
+  const auditsRealises = audits.filter((a) => a.statut === "REALISE").length;
+  const auditsTotal = audits.filter((a) => a.statut !== "ANNULE").length;
   const auditsTaux =
-    auditsPlanifies > 0
-      ? Math.round((auditsRealises / auditsPlanifies) * 100)
-      : 0;
+    auditsTotal > 0 ? Math.round((auditsRealises / auditsTotal) * 100) : 0;
 
-  const reclamationsOuvertes = complaints.filter((c) => c.status !== "Clôturée")
-    .length;
-  const reclamationsPlus48h = complaints.filter((c) => {
-    if (c.status === "Clôturée" || !c.created_at) return false;
-    const hours =
-      (new Date().getTime() - new Date(c.created_at).getTime()) /
-      (1000 * 60 * 60);
-    return hours > 48;
+  const reclamationsOuvertes = reclamations.filter(
+    (r) => r.statut === "OUVERTE" || r.statut === "EN_COURS"
+  ).length;
+  const reclamationsPlus48h = reclamations.filter((r) => {
+    if (r.statut === "CLOSE" || r.statut === "TRAITEE") return false;
+    const ref = r.date_reception ?? r.created_at;
+    if (!ref) return false;
+    return (Date.now() - new Date(ref).getTime()) / (1000 * 60 * 60) > 48;
   }).length;
 
-  // Matrice santé par domaine (calcul simplifié basé sur SOPs du domaine)
-  const getDomaineHealth = (domainId: string): "ok" | "wip" | "crit" | "plan" => {
-    const domainSops = sops.filter((s) => s.domain_id === domainId);
-    if (domainSops.length === 0) return "plan";
+  // Matrice santé par processus (basée sur les SOPs rattachées)
+  const getProcessusHealth = (
+    processusId: string
+  ): "ok" | "wip" | "crit" | "plan" => {
+    const procSops = sops.filter((s) => s.processus_id === processusId);
+    if (procSops.length === 0) return "plan";
 
     const validPct =
-      (domainSops.filter((s) => s.status === "Validé").length /
-        domainSops.length) *
+      (procSops.filter((s) => s.statut === "EN_VIGUEUR").length /
+        procSops.length) *
       100;
 
     if (validPct >= 70) return "ok";
@@ -151,23 +127,32 @@ export const TabTableauDeBord: React.FC = () => {
     return "crit";
   };
 
-  // Données graphique tendance (placeholder avec données statiques)
-  const trendData = [
-    { month: "Oct", score: 65 },
-    { month: "Nov", score: 68 },
-    { month: "Déc", score: 72 },
-    { month: "Jan", score: 75 },
-    { month: "Fév", score: score.total || 78 },
-  ];
+  // Tendance réelle du score SMQ depuis kpi_history
+  const trendData = kpiHistory
+    .filter((k) => k.score_global !== null)
+    .map((k) => ({
+      date: new Date(k.date_calcul).toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "short",
+      }),
+      score: k.score_global as number,
+    }));
+  if (
+    trendData.length === 0 ||
+    (score.scoreGlobal > 0 &&
+      trendData[trendData.length - 1]?.score !== score.scoreGlobal)
+  ) {
+    trendData.push({ date: "Auj.", score: score.scoreGlobal });
+  }
 
   // Mapping alertes vers onglets
-  const getAlertHref = (alert: any): string => {
+  const getAlertHref = (alert: { source_table: string }): string => {
     const sourceMap: Record<string, string> = {
-      capas: "/dashboard/capa",
+      capa: "/dashboard/capa",
       sops: "/dashboard/documents",
-      qualifications: "/dashboard/formations",
-      maintenance: "/dashboard/equipements",
-      complaints: "/dashboard/reclamations",
+      habilitations: "/dashboard/formations",
+      equipements: "/dashboard/equipements",
+      reclamations: "/dashboard/reclamations",
       vigilances: "/dashboard/vigilances",
     };
     return sourceMap[alert.source_table] || "/dashboard/tableau-de-bord";
@@ -182,62 +167,29 @@ export const TabTableauDeBord: React.FC = () => {
         </h2>
         <div className="bg-card border border-brd rounded-md p-6">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-8">
-            {/* Score principal */}
+            {/* Score principal (calculé côté base — kpi_smq_current_scoped) */}
             <div className="flex flex-col items-center">
-              <ScoreGauge score={score.total} size={80} />
-              <div className="text-[11px] text-mut mt-2">Score global</div>
+              <ScoreGauge score={score.scoreGlobal} size={80} />
+              <div className="text-[11px] text-mut mt-2">
+                {scoreLoading ? "Calcul..." : "Score global"}
+              </div>
             </div>
 
-            {/* Breakdown 7 composantes */}
+            {/* Breakdown dynamique (pondérations smq_config) */}
             <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex flex-col items-center">
-                <ScoreGauge score={(score.sops / 25) * 100} size={56} />
-                <div className="text-[11px] text-mut mt-1 text-center">
-                  SOPs (25%)
+              {score.breakdown.map((c) => (
+                <div key={c.code} className="flex flex-col items-center">
+                  <ScoreGauge score={c.value ?? 0} size={56} />
+                  <div className="text-[11px] text-mut mt-1 text-center">
+                    {c.label} ({Math.round(c.weight * 100)}%)
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-col items-center">
-                <ScoreGauge score={(score.capa / 20) * 100} size={56} />
-                <div className="text-[11px] text-mut mt-1 text-center">
-                  CAPA (20%)
+              ))}
+              {!scoreLoading && score.breakdown.length === 0 && (
+                <div className="text-[12px] text-mut col-span-full">
+                  Aucune composante active
                 </div>
-              </div>
-              <div className="flex flex-col items-center">
-                <ScoreGauge
-                  score={(score.habilitations / 15) * 100}
-                  size={56}
-                />
-                <div className="text-[11px] text-mut mt-1 text-center">
-                  Habilit. (15%)
-                </div>
-              </div>
-              <div className="flex flex-col items-center">
-                <ScoreGauge score={(score.equipements / 15) * 100} size={56} />
-                <div className="text-[11px] text-mut mt-1 text-center">
-                  Équip. (15%)
-                </div>
-              </div>
-              <div className="flex flex-col items-center">
-                <ScoreGauge score={(score.audits / 10) * 100} size={56} />
-                <div className="text-[11px] text-mut mt-1 text-center">
-                  Audits (10%)
-                </div>
-              </div>
-              <div className="flex flex-col items-center">
-                <ScoreGauge
-                  score={(score.reclamations / 10) * 100}
-                  size={56}
-                />
-                <div className="text-[11px] text-mut mt-1 text-center">
-                  Réclam. (10%)
-                </div>
-              </div>
-              <div className="flex flex-col items-center">
-                <ScoreGauge score={(score.risques / 5) * 100} size={56} />
-                <div className="text-[11px] text-mut mt-1 text-center">
-                  Risques (5%)
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -251,9 +203,10 @@ export const TabTableauDeBord: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <KpiCard
             icon={<DocIcon size={20} />}
-            label="SOPs validées"
-            value={`${sopsValides}/${sops.length}`}
-            subtitle={`${sopsEnCours} en cours - ${sopsPlanifiees} planifiées`}
+            label="SOPs en vigueur"
+            value={`${sopsEnVigueur}/${sops.length}`}
+            subtitle={`${sopsBrouillon} brouillons - ${sopsAReviser} à réviser`}
+            accent={sopsAReviser > 0 ? "amber" : "default"}
           />
           <KpiCard
             icon={<ZapIcon size={20} />}
@@ -264,9 +217,10 @@ export const TabTableauDeBord: React.FC = () => {
           />
           <KpiCard
             icon={<UsersIcon size={20} />}
-            label="Habilitations"
+            label="Habilitations valides"
             value={`${habilitationsPct}%`}
             subtitle={`${habilitationsExpiring} expirent sous 30j`}
+            accent={habilitationsExpiring > 0 ? "amber" : "default"}
           />
           <KpiCard
             icon={<ToolIcon size={20} />}
@@ -278,7 +232,7 @@ export const TabTableauDeBord: React.FC = () => {
           <KpiCard
             icon={<SearchIcon size={20} />}
             label="Audits réalisés"
-            value={`${auditsRealises}/${auditsPlanifies}`}
+            value={`${auditsRealises}/${auditsTotal}`}
             subtitle={`Taux réalisation ${auditsTaux}%`}
           />
           <KpiCard
@@ -290,6 +244,50 @@ export const TabTableauDeBord: React.FC = () => {
           />
         </div>
       </section>
+
+      {/* Section PHSQ (pharma-systeme-qualite.fr — dernier scraping) */}
+      {phsq && (
+        <section>
+          <h2 className="text-[12px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
+            PHSQ — DERNIER RELEVÉ (
+            {new Date(phsq.date_scraping).toLocaleDateString("fr-FR")})
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <KpiCard
+              icon={<ZapIcon size={20} />}
+              label="CAPA PHSQ ouvertes"
+              value={phsq.capa_ouvertes ?? 0}
+              subtitle={`${phsq.capa_en_retard ?? 0} en retard${
+                phsq.capa_delai_moyen_jours
+                  ? ` - délai moyen ${phsq.capa_delai_moyen_jours}j`
+                  : ""
+              }`}
+              accent={(phsq.capa_en_retard ?? 0) > 0 ? "amber" : "default"}
+            />
+            <KpiCard
+              icon={<MsgIcon size={20} />}
+              label="Dysfonctionnements"
+              value={phsq.dysfonctionnements_ouverts ?? 0}
+              subtitle={`${phsq.dysfonctionnements_clos ?? 0} clos`}
+              accent={
+                (phsq.dysfonctionnements_ouverts ?? 0) > 0 ? "amber" : "default"
+              }
+            />
+            <KpiCard
+              icon={<DocIcon size={20} />}
+              label="Fiches progrès"
+              value={phsq.fiches_progres_ouvertes ?? 0}
+              subtitle="ouvertes"
+            />
+            <KpiCard
+              icon={<UsersIcon size={20} />}
+              label="Formations PHSQ"
+              value={`${phsq.formations_a_jour ?? 0}/${phsq.formations_total ?? 0}`}
+              subtitle="à jour"
+            />
+          </div>
+        </section>
+      )}
 
       {/* Section Alertes actives */}
       <section>
@@ -304,7 +302,7 @@ export const TabTableauDeBord: React.FC = () => {
               Aucune alerte active
             </div>
           ) : (
-            alerts.slice(0, 5).map((alert) => (
+            alerts.slice(0, 8).map((alert) => (
               <AlertLine
                 key={alert.id}
                 severity={alert.severity === "error" ? "red" : "amber"}
@@ -322,8 +320,8 @@ export const TabTableauDeBord: React.FC = () => {
           SANTÉ PAR PROCESSUS
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {domains.slice(0, 16).map((domain) => {
-            const health = getDomaineHealth(domain.id);
+          {processus.slice(0, 16).map((proc) => {
+            const health = getProcessusHealth(proc.id);
             const barColor =
               health === "ok"
                 ? "bg-green-500"
@@ -334,7 +332,7 @@ export const TabTableauDeBord: React.FC = () => {
                 : "bg-gray-400";
             return (
               <div
-                key={domain.id}
+                key={proc.id}
                 className="bg-card border border-brd rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden"
               >
                 {/* Colored indicator bar at top */}
@@ -343,11 +341,9 @@ export const TabTableauDeBord: React.FC = () => {
                 />
                 <div>
                   <div className="text-[14px] font-semibold text-text leading-tight">
-                    {domain.name}
+                    {proc.nom}
                   </div>
-                  <div className="text-[11px] text-mut mt-1">
-                    {domain.process_type}
-                  </div>
+                  <div className="text-[11px] text-mut mt-1">{proc.code}</div>
                 </div>
                 <div className="mb-1">
                   <Badge variant={health}>
@@ -355,7 +351,9 @@ export const TabTableauDeBord: React.FC = () => {
                       ? "Conforme"
                       : health === "wip"
                       ? "Attention"
-                      : "Action"}
+                      : health === "crit"
+                      ? "Action"
+                      : "À documenter"}
                   </Badge>
                 </div>
               </div>
@@ -364,7 +362,7 @@ export const TabTableauDeBord: React.FC = () => {
         </div>
       </section>
 
-      {/* Section Graphique tendance */}
+      {/* Section Graphique tendance (kpi_history réel) */}
       <section>
         <h2 className="text-[12px] uppercase tracking-[1.8px] font-semibold text-mut mb-4">
           TENDANCE SCORE SMQ
@@ -379,7 +377,7 @@ export const TabTableauDeBord: React.FC = () => {
                 </linearGradient>
               </defs>
               <XAxis
-                dataKey="month"
+                dataKey="date"
                 stroke="var(--mut)"
                 style={{ fontSize: "11px" }}
               />
