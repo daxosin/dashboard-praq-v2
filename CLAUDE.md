@@ -1,39 +1,34 @@
 # CLAUDE.md — Dashboard PRAQ v2 (Pharma78)
 
 > Ce fichier est la mémoire du projet pour Claude Code. Lis-le AVANT toute action.
-> Dernière maj : 2026-04-27 par Emmanuel + Claude (post-audit complet).
+> Dernière maj : 2026-06-10 par Claude (alignement schéma prod, branche `chore/align-db-schema`).
 
 ---
 
 ## Mission actuelle (priorité critique)
 
-**Objectif** : Faire de ce repo Next.js le **vrai** repo de https://praq-dashboard.vercel.app/, en remplacement du déploiement Vite orphelin actuellement en prod.
+**LE PIVOT VERCEL EST FAIT** : depuis le 2026-05-15, https://praq-dashboard.vercel.app/ sert **ce repo Next.js** (deploy automatique sur push GitHub `main`). L'ancien bundle Vite orphelin n'est plus en prod.
 
-**Étape par étape :**
+**Conséquence** : tout push sur `main` part en prod. La mission est d'achever l'alignement du code sur le schéma DB réel **via branches + deploy preview**, jamais en direct sur main.
 
-1. Aligner les noms de tables/colonnes dans `src/` sur le schéma réel de la base prod (voir [Schéma DB](#schéma-base-prod) ci-dessous).
-2. Adapter ou créer les composants qui doivent lire `phsq_snapshots` et `kpi_history` (actuellement non consommés).
-3. Configurer le projet Vercel `praq-dashboard` pour utiliser Next.js (au lieu du framework Vite qu'il croit être). Voir [Pivot Vercel](#pivot-vercel).
-4. Déployer et vérifier que les données réelles s'affichent correctement.
+**État de l'alignement (2026-06-10, branche `chore/align-db-schema`) :**
+
+1. ✅ Migrations synchronisées (10/10) + types TS générés (`src/lib/database.types.ts`, alias dans `src/lib/db-rows.ts`).
+2. ✅ Score SMQ via RPC DB `kpi_smq_current_scoped` (useSmqScore), PHSQ dynamique (usePhsqLatest), alertes réelles (useAlerts), TabTableauDeBord aligné.
+3. 🔄 Onglets en cours d'alignement sur les tables réelles (voir mapping ci-dessous).
+4. ❌ Flux terrain `/declare` : dépend de `staff_pins`, `domains`, bucket `photos` qui n'existent PAS en prod — décision fonctionnelle à prendre (créer les migrations ou refondre le flux sur `declarations` + `staff_lite`).
 
 ---
 
-## Contexte historique critique — À COMPRENDRE
+## Contexte historique — RÉSOLU (gardé pour mémoire)
 
-### Le projet est divisé en 2 codebases distinctes (un héritage à corriger)
-
-| | **Ce repo (Next.js)** | **Le déploiement prod actuel (Vite SPA)** |
-|---|---|---|
-| Repo Git | `daxosin/dashboard-praq-v2` | ❌ Aucun. Code source perdu / introuvable |
-| Stack | Next.js 15 (App Router) + Docker | Vite SPA (bundle `index-CbLC27A_.js`) |
-| Cible historique | Coolify (Dockerfile + standalone) | Vercel |
-| Statut prod | Pas déployé | Live depuis 2026-04-06 (deploy CLI) |
-| Compteurs PHSQ | Aucune lecture de `phsq_snapshots` | **Hardcodés en dur dans le bundle** (snapshot 18 avril figé) |
+Le projet a longtemps été divisé en 2 codebases : ce repo Next.js (jamais déployé) et un Vite SPA orphelin en prod (code source perdu, compteurs PHSQ hardcodés). Résolu le 2026-05-15 : `vercel.json` force `framework: nextjs`, le push GitHub `daxosin/dashboard-praq-v2@main` déclenche les deploys. Le preset "vite" qui traîne encore dans les settings du projet Vercel est cosmétique (overridé par vercel.json) mais mériterait d'être corrigé.
 
 ### Points dangereux à connaître
 
-- **Le projet Vercel `praq-dashboard` indique framework "vite"** — c'est faux pour ce repo Next.js. À corriger via les settings Vercel ou un `vercel.json` adapté.
-- **Le Dockerfile + `.env.production` + `Dockerfile`** sont des reliquats du setup Coolify. Pour Vercel il faut soit les supprimer soit les ignorer.
+- **`main` = prod immédiate.** Travailler sur branche, vérifier le deploy preview, puis merger.
+- **La base prod évolue SANS ce repo** (SQL direct via Cowork/MCP : 14 tables hors migration, voir `supabase/migrations/README.md`). Avant tout chantier : re-vérifier le schéma réel (`generate_typescript_types` ou `db pull`), ne jamais faire confiance au CLAUDE.md seul.
+- **Le Dockerfile + `.env.production`** sont des reliquats du setup Coolify. Ignorés par Vercel ; vérifier qu'aucune clé ne traîne dans `.env.production`.
 - **`SOPs-Pharma78/` est dans `.gitignore`** : ce sont des binaires .docx métier, pas du code. Ne pas les commiter.
 - **Le `.git/config` historique** était cassé (pointait vers `refs/heads/master`). Réparé le 2026-04-27.
 - **Anciennes migrations** dans `supabase/migrations/_archive/` : NE PAS les rejouer. Schéma anglais obsolète (capas, equipment, complaints, risks). Conservées pour traçabilité ISO.
@@ -46,9 +41,9 @@
 - **Backend** : Supabase (PostgreSQL 17) — projet `igsrwmigysgspqskwhqy` (région eu-west-3, ACTIVE_HEALTHY)
 - **UI** : Tailwind CSS 4, tokens CSS dual-theme (nuit/jour)
 - **Charts** : Recharts
-- **Auth** : Supabase Auth (email/pwd dashboard) + PIN bcrypt 4 chiffres (formulaire terrain)
+- **Auth** : Supabase Auth (email/pwd dashboard). PIN bcrypt terrain : CASSÉ (table `staff_pins` absente en prod, voir TODOs)
 - **Icônes** : SVG inline monochromes (trait 1.5–2px) — **AUCUN EMOJI**
-- **Hosting cible** : Vercel (à reconfigurer)
+- **Hosting** : Vercel (deploy auto sur push GitHub, `main` = prod)
 
 ## Branding (règle absolue)
 
@@ -65,52 +60,52 @@
 Projet Supabase : `igsrwmigysgspqskwhqy`
 URL : `https://igsrwmigysgspqskwhqy.supabase.co`
 
-### 15 tables réelles en prod (schéma `public`)
+### 31 tables réelles en prod (schéma `public`) — relevé 2026-06-10
 
-| Table | Lignes ~ | Lue par le code prod (Vite) ? | Lue par ce repo ? |
-|---|---|---|---|
-| `processus` | 16 | ✅ | À aligner |
-| `sops` | 112 | ✅ (champ `statut`) | ❌ code utilise `status` |
-| `capa` | 3 | ✅ | ❌ code utilise `capas` |
-| `audits` | 0 | ✅ | ❌ code utilise `status` au lieu de `statut` |
-| `vigilances` | 2 | ✅ | À aligner |
-| `declarations` | 3 | ✅ | À aligner |
-| `equipements` | 0 | ✅ | ❌ code utilise `equipment` |
-| `formations` | 0 | — | À créer |
-| `habilitations` | 0 | — | ❌ code utilise `qualifications` |
-| `fournisseurs` | 0 | — | À créer |
-| `reclamations` | 0 | — | ❌ code utilise `complaints` |
-| `risques` | 0 | — | ❌ code utilise `risks` (avec colonne `level`) |
-| `phsq_snapshots` | 3 | ❌ (compteurs hardcodés) | ❌ pas lu |
-| `kpi_history` | 2 | ❌ | ❌ pas lu |
-| `smq_config` | 7 | — | À créer |
+**Source de vérité du schéma : `src/lib/database.types.ts`** (généré depuis la prod). Les alias de types par table sont dans `src/lib/db-rows.ts` — les composants importent depuis db-rows, jamais depuis database.types directement.
 
-### Mapping à appliquer dans `src/`
+Tables métier avec données : `sops` (119), `risques` (38), `vigilances` (24), `equipements` (19), `processus` (16), `declarations` (15), `capa` (8), `indicateurs` (8), `formations` (7), `smq_config` (7), `staff_lite` (36 collaborateurs), `phsq_snapshots` (42), `kpi_history` (3+), `habilitations` (2), `reclamations` (2), `revue_direction` (2), `tracabilites_suivi` (4), `cold_chain_anomalies` (9), `cold_chain_monthly_sync` (2).
+
+Tables vides (structure prête) : `audits` (1), `audit_findings`, `fournisseurs`, `maintenance`, `indicateurs_valeurs`, `revue_actions`, `plan_strategique`, `projets`, `projet_taches`, `evaluations_collaborateur`.
+
+Tables système (ne pas toucher depuis le front) : `audit_log` (trail 2797+), `cowork_runs`.
+
+Toutes les tables métier ont un **soft delete** (`deleted_at`) — `useSupabaseCrud` filtre automatiquement `deleted_at IS NULL`.
+
+### Mapping appliqué dans `src/` (branche chore/align-db-schema)
 
 ```
-capas       → capa
-equipment   → equipements
-complaints  → reclamations
-risks       → risques
-qualifications → habilitations
-status      → statut       (sur sops, audits, capa, equipements, vigilances, declarations)
-created_at, updated_at  → idem (déjà OK)
+capas            → capa
+equipment        → equipements
+complaints       → reclamations
+risks            → risques
+qualifications   → habilitations
+trainings        → formations
+suppliers        → fournisseurs       (supplier_events : pas d'équivalent, feature retirée)
+indicators       → indicateurs
+indicator_values → indicateurs_valeurs
+reviews          → revue_direction
+review_actions   → revue_actions
+staff            → staff_lite
+domains          → processus          (référentiel de catégorisation)
+recalls          → vigilances type='RETRAIT_LOT'
+alerts_view      → calcul client dans useAlerts (la vue n'existe pas)
+status           → statut             (partout, valeurs UPPERCASE des CHECK constraints)
 ```
 
-### Tables que le code attend mais qui n'existent pas en prod
+### Fonctions DB à utiliser (ne pas recalculer côté client)
 
-`staff_pins`, `staff`, `domains`, `alerts_view`, `photos`. À créer (migrations) ou à abandonner selon la fonctionnalité ciblée.
+- `kpi_smq_current_scoped(p_perimetre)` : score SMQ global + breakdown pondéré par `smq_config` — consommé par `useSmqScore`. Périmètres : GLOBAL | OFFICINE | PDA.
+- `kpi_smq_components_scoped(p_perimetre)` : détail par composante.
+- `freeze_rdd(p_rdd_id)` : fige une revue de direction (snapshots JSONB). Trigger auto au passage statut='REALISEE'.
+
+### Tables que le code attendait et qui n'existent toujours pas
+
+`staff_pins`, `domains`, `alerts_view`, bucket storage `photos` → le flux terrain `/declare` (PIN + photos) est CASSÉ en prod. Décision à prendre : créer les migrations (PIN bcrypt sur staff_lite ?) ou refondre sur `declarations`.
 
 ### Migrations en prod (tracker `supabase_migrations.schema_migrations`)
 
-```
-20260406090959_create_praq_tables.sql      (schéma initial 12 tables + seeds)
-20260406200033_create_capa_table.sql
-20260406201733_create_formations_table.sql (formations + habilitations + RLS)
-20260408132010_add_score_global_to_kpi_history.sql
-```
-
-Toutes les 4 sont dans `supabase/migrations/` (rapatriées le 2026-04-27).
+**10 migrations**, toutes dans `supabase/migrations/` (synchro 2026-06-10) — détail dans `supabase/migrations/README.md`. ⚠️ 14 tables prod ont été créées HORS migration (SQL direct Cowork/MCP) — non-conformité de traçabilité documentée dans ce même README.
 Les anciennes (datées 2026-02-15, schéma anglais obsolète) sont dans `supabase/migrations/_archive/` — **NE PAS rejouer**.
 
 ---
@@ -156,21 +151,13 @@ src/app/
 
 ---
 
-## Pivot Vercel
+## Déploiement Vercel (pivot fait le 2026-05-15)
 
-Pour faire de ce repo le projet Vercel `praq-dashboard` :
-
-1. Sur le dashboard Vercel, ouvrir le projet `prj_ETn48QDghMVUd64mpnOlAaMVYY9T` (team `daxosins-projects`).
-2. Settings → Build & Development Settings → changer Framework Preset de "Vite" à "Next.js".
-3. Settings → Git → connecter au repo GitHub `daxosin/dashboard-praq-v2` (pour que les push GitHub déclenchent les deploys, au lieu de devoir faire `vercel deploy` CLI).
-4. Settings → Environment Variables → ajouter `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (déjà dans `.env.local` côté local).
-5. Le Dockerfile à la racine sera ignoré par Vercel (mais ne pas le supprimer tant qu'on n'est pas sûr d'avoir abandonné Coolify).
-6. Tester un deploy de preview sur une branche avant de merger en main.
-
-**Avant le pivot, vérifier impérativement que :**
-- Le code source ne plante plus sur les noms de tables/colonnes (mapping fait).
-- Les migrations en `supabase/migrations/` matchent l'état prod (déjà OK).
-- Aucune route ne plante en build (`npm run build` localement avant push).
+- Push GitHub `daxosin/dashboard-praq-v2` → deploy automatique. `main` = production, branches = preview.
+- `vercel.json` force `framework: nextjs` (le preset projet affiche encore "vite" — cosmétique, à corriger un jour dans Settings → Build & Development Settings).
+- Env vars `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` configurées côté Vercel.
+- Le Dockerfile à la racine est ignoré par Vercel (reliquat Coolify, ne pas supprimer tant que Coolify n'est pas officiellement abandonné).
+- **Workflow obligatoire** : branche → push → vérifier le deploy preview → merger sur main. Jamais de `vercel deploy` CLI.
 
 ---
 
@@ -237,21 +224,23 @@ Si une clé apparaît dans un commit, faire la rotation immédiatement et purger
 
 ## TODOs prioritaires
 
-- [ ] Renommer dans `src/` : `capas → capa`, `equipment → equipements`, `complaints → reclamations`, `risks → risques`, `qualifications → habilitations`, `status → statut`.
-- [ ] Adapter `useSmqScore.ts` pour les nouveaux noms.
-- [ ] Créer un hook `usePhsqLatest.ts` qui lit la dernière ligne de `phsq_snapshots` ordonnée par `date_scraping DESC`.
-- [ ] Remplacer les compteurs PHSQ hardcodés par la lecture dynamique.
-- [ ] Tableau de bord : afficher score SMQ + sous-scores depuis `kpi_history` (dernière ligne par `date_calcul`).
-- [ ] Configurer Vercel pour Next.js (voir [Pivot Vercel](#pivot-vercel)).
-- [ ] Décider du sort des tables `staff`, `staff_pins`, `domains`, `alerts_view`, `photos` (créer en migration ou refactorer le code qui en a besoin).
-- [ ] Ajouter un `vercel.json` avec config minimale (regions: ['cdg1'], functions config si besoin).
-- [ ] Audit final + premier deploy preview.
+- [x] Renommages `src/` (capa, equipements, reclamations, risques, habilitations, formations, fournisseurs, indicateurs, revue_direction, staff_lite, processus, statut) — branche `chore/align-db-schema`.
+- [x] `useSmqScore` via RPC `kpi_smq_current_scoped` (plus de recalcul client).
+- [x] `usePhsqLatest` (dernière ligne `phsq_snapshots` par `date_scraping DESC`) + section PHSQ du tableau de bord.
+- [x] Tendance score SMQ depuis `kpi_history` (perimetre GLOBAL).
+- [x] Configurer Vercel pour Next.js (vercel.json, deploys Git).
+- [x] Migrations synchronisées (10/10) + `database.types.ts` + `db-rows.ts`.
+- [ ] Vérifier le deploy preview de `chore/align-db-schema` puis merger sur main.
+- [ ] **Décider du sort du flux terrain `/declare`** : `staff_pins`, `domains` et le bucket `photos` n'existent pas en prod → soit migrations (PIN bcrypt rattaché à `staff_lite`), soit refonte sur la table `declarations` (15 lignes réelles, type/gravite/statut).
+- [ ] Corriger le Framework Preset "vite" → "Next.js" dans les settings Vercel (cosmétique).
+- [ ] Onglets manquants pour les nouvelles tables prod : traçabilités (`tracabilites_suivi`), chaîne du froid (`cold_chain_*`), projets/plan stratégique — à prioriser avec Emmanuel.
+- [ ] Rétro-documenter les 14 tables créées hors migration (voir `supabase/migrations/README.md`).
 
 ---
 
 ## Pièges historiques (ne pas refaire)
 
-1. **Ne JAMAIS faire `supabase db reset` localement** sans avoir vérifié que les 4 migrations prod (timestamps `20260406*` et `20260408*`) sont bien dans `supabase/migrations/`. Sinon perte de schéma.
+1. **Ne JAMAIS faire `supabase db reset` localement** sans avoir vérifié que les 10 migrations prod (timestamps `20260406*`, `20260408*`, `20260521*`, `20260602*`) sont bien dans `supabase/migrations/`. Sinon perte de schéma.
 2. **Ne pas réintroduire les anciennes migrations** (000_, 001_, ..., 999_) dans `supabase/migrations/`. Elles sont obsolètes et conservées dans `_archive/` pour traçabilité ISO uniquement.
 3. **Ne pas déployer via `vercel deploy` CLI** — uniquement via push Git, pour garantir que ce qui est en prod est ce qui est dans le repo.
 4. **Ne pas renommer les tables côté DB pour matcher le code** (ex: créer une vue `capas` qui pointe sur `capa`). Mauvais pour la traçabilité ISO 9001 et crée une indirection cachée. Toujours aligner le code sur la DB, pas l'inverse.

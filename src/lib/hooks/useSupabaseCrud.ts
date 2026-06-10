@@ -7,6 +7,8 @@ interface UseSupabaseCrudOptions {
   select?: string;
   orderBy?: { column: string; ascending?: boolean };
   filters?: Record<string, any>;
+  /** Inclure les lignes soft-deleted (deleted_at non nul). Défaut : false. */
+  includeDeleted?: boolean;
 }
 
 export function useSupabaseCrud<T = any>(
@@ -27,6 +29,10 @@ export function useSupabaseCrud<T = any>(
       setError(null);
 
       let query = supabase.from(tableName).select(options.select || '*');
+
+      if (!options.includeDeleted) {
+        query = query.is('deleted_at', null);
+      }
 
       if (options.filters) {
         Object.entries(options.filters).forEach(([key, value]) => {
